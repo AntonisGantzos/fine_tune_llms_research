@@ -3,4 +3,6 @@ pandas
 matplotlib
 seaborn
 tqdm
-pdfplumber
+pdfplumber 
+scikit-learn
+transformers
