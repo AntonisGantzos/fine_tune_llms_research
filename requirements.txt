@@ -5,4 +5,12 @@ seaborn
 tqdm
 pdfplumber 
 scikit-learn
+torch
 transformers
+peft
+bitsandbytes
+trl
+accelerate
+datasets
+pandas
+scikit-learn
