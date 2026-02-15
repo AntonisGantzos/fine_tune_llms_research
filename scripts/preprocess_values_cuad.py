@@ -7,7 +7,8 @@ def clean_text(text):
     """
     1. Converts input to string.
     2. Removes all characters that are NOT alphanumeric (a-z, A-Z, 0-9) or whitespace.
-    3. Normalizes whitespace (removes newlines/tabs, converts multiple spaces to single space).
+    3. Specifically strips brackets [] and braces {} if they remain (though step 2 handles them).
+    4. Normalizes whitespace (removes newlines/tabs, converts multiple spaces to single space).
     """
     if pd.isna(text):
         return ""
@@ -15,8 +16,13 @@ def clean_text(text):
     # Ensure it's a string
     text = str(text)
     
+    # Remove brackets and braces explicitly if needed, or rely on the general cleaner below.
+    # The pattern below [^a-zA-Z0-9\s] already removes [], {}, and other symbols.
+    # To be explicit about removing them as requested:
+    text = re.sub(r'[\[\]\{\}]', '', text)
+
     # Remove special characters (keep only letters, numbers, and spaces)
-    # If you want to keep punctuation like periods/commas, change pattern to r'[^a-zA-Z0-9\s.,]'
+    # This acts as a catch-all for anything else not alphanumeric/space
     text = re.sub(r'[^a-zA-Z0-9\s]', '', text)
     
     # Replace newlines and tabs with a single space
