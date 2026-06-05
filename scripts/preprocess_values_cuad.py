@@ -63,8 +63,11 @@ def process_dataset(input_path, output_path):
 
 if __name__ == "__main__":
     # Adjust paths relative to your workspace root
-    INPUT_FILE = "data/cuad/master_clauses.csv"
-    OUTPUT_FILE = "data/cuad/master_clauses_cleaned.csv"
+    DATA_DIR = os.getenv("DATA_DIR", "data")
+    CUAD_DIR = os.path.join(DATA_DIR, "CUAD_v1")
+    print(f"Using CUAD dataset directory: {CUAD_DIR}")
+    INPUT_FILE = f"{CUAD_DIR}/master_clauses.csv"
+    OUTPUT_FILE = f"{CUAD_DIR}/master_clauses_cleaned.csv"
     try:
         process_dataset(INPUT_FILE, OUTPUT_FILE)
     except Exception as e:
