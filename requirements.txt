@@ -12,4 +12,6 @@ trl
 accelerate
 datasets
 pandas
+ipykernel
 scikit-learn
+dotenv
