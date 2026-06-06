@@ -14,7 +14,7 @@ In `master_clauses_cleaned.csv`, for each category there are two columns:
 | `<Category>` (the "context" / model input) | the actual clause text | **empty** |
 | `<Category>_Answer` (the label) | `Yes` | `No` |
 
-I verified this is a **perfect correlation** across all 510 contracts — context is
+This is a **perfect correlation** across all 510 contracts — context is
 non-empty *exactly when* the answer is Yes, with zero exceptions.
 
 The notebook feeds that context column to the model as `input`. So:

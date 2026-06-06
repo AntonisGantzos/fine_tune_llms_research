@@ -18,7 +18,7 @@ def parse_args():
     p.add_argument("--input", "-i", default="data/CUAD_v1/master_clauses_cleaned.csv")
     p.add_argument("--output", "-o", default="data/CUAD_v1/master_clauses_cleaned_sampled.csv")
     p.add_argument("--seed", "-s", type=int, default=42)
-    p.add_argument("--n", "-n", type=int, default=20, help="number of rows to sample")
+    p.add_argument("--n", "-n", type=int, default=100, help="number of rows to sample")
     p.add_argument("--format", "-f", choices=["csv", "json", "both"], default="csv",
                    help="output format: csv (default), json (jsonlines), or both")
     return p.parse_args()
