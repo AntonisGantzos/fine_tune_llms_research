@@ -16,3 +16,5 @@ ipykernel
 scikit-learn
 dotenv
 nbstripout 
+notebook
+ipywidgets
