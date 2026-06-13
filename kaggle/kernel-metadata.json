@@ -1,0 +1,13 @@
+{
+  "id": "antonisgantzos/cuad-task1-finetune",
+  "title": "CUAD Task1 Finetune",
+  "code_file": "../llm_fine_tuning_LORA_task1_v2.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": ["antonisgantzos/cuad-master-clauses-cleaned"],
+  "competition_sources": [],
+  "kernel_sources": []
+}

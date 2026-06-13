@@ -1,0 +1,21 @@
+{
+  "id": "antonisgantzos/cuad-task1-finetune",
+  "id_no": 122881039,
+  "title": "CUAD Task1 Finetune",
+  "code_file": "cuad-task1-finetune.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "keywords": [],
+  "dataset_sources": [
+    "antonisgantzos/cuad-master-clauses-cleaned"
+  ],
+  "kernel_sources": [],
+  "competition_sources": [],
+  "model_sources": [],
+  "docker_image": "gcr.io/kaggle-private-byod/python@sha256:57e612b484cf3df5026ee4dcc3cb176974b22b2bc0937fb1e16132a8be4cb13c",
+  "machine_shape": "Gpu"
+}

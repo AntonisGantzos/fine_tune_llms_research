@@ -3,3 +3,8 @@
 /data/*
 /data/.gitkeep
 .env
+
+# Kaggle: ignore the copied data payload and downloaded outputs, but keep the
+# tracked metadata (kaggle/kernel-metadata.json, kaggle/dataset_payload/dataset-metadata.json).
+/kaggle/dataset_payload/CUAD_v1/
+/kaggle_output/
