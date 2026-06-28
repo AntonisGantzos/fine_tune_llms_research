@@ -1,0 +1,15 @@
+Per-class precision / recall / F1 on validation:
+
+              precision    recall  f1-score   support
+
+         Yes       0.76      0.93      0.83       125
+          No       0.97      0.89      0.93       323
+
+    accuracy                           0.90       448
+   macro avg       0.86      0.91      0.88       448
+weighted avg       0.91      0.90      0.90       448
+
+
+Confusion matrix (rows = true [Yes, No], cols = pred [Yes, No]):
+[[116   9]
+ [ 37 286]]

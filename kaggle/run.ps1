@@ -11,8 +11,8 @@ $kaggle = @($(if ($env:VIRTUAL_ENV) { Join-Path $env:VIRTUAL_ENV "Scripts\python
 # Derive the kernel id from kernel-metadata.json so the username lives in exactly one place.
 $meta     = Get-Content (Join-Path $PSScriptRoot "kernel-metadata.json") -Raw | ConvertFrom-Json
 $kernelId = $meta.id
-if ($kernelId -like "antonisgantzos/*") {
-    throw "Edit kaggle\kernel-metadata.json: replace antonisgantzos with your Kaggle username."
+if ($kernelId -like "YOUR_KAGGLE_USERNAME/*") {
+    throw "Edit kaggle\kernel-metadata.json: replace YOUR_KAGGLE_USERNAME with your Kaggle username."
 }
 
 Write-Host "Pushing kernel $kernelId ..."

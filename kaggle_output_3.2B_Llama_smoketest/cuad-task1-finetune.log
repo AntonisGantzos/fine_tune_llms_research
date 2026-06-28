@@ -1,0 +1,560 @@
+[{"stream_name":"stderr","time":5.46688831,"data":"/usr/local/lib/python3.12/dist-packages/nbformat/__init__.py:96: MissingIDFieldWarning: Cell is missing an id field, this will become a hard error in future nbformat versions. You may want to use `normalize()` on your notebooks before validations (available since nbformat 5.1.4). Previous versions of nbformat are fixing this issue transparently, and will stop doing so in the future.\n"}
+,{"stream_name":"stderr","time":5.466948006,"data":"  validate(nb)\n"}
+,{"stream_name":"stderr","time":6.203717254,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":6.203749538,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":6.20375433,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":6.203758034,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stderr","time":6.755124501,"data":"0.00s - Debugger warning: It seems that frozen modules are being used, which may\n"}
+,{"stream_name":"stderr","time":6.75515557,"data":"0.00s - make the debugger miss breakpoints. Please pass -Xfrozen_modules=off\n"}
+,{"stream_name":"stderr","time":6.755161119,"data":"0.00s - to python to disable frozen modules.\n"}
+,{"stream_name":"stderr","time":6.755164947,"data":"0.00s - Note: Debugging will proceed. Set PYDEVD_DISABLE_FILE_VALIDATION=1 to disable this validation.\n"}
+,{"stream_name":"stdout","time":10.237576132,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 825.1/825.1 kB 25.3 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":10.439681778,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 825.1/825.1 kB 25.3 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":11.211842593,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 60.7/60.7 MB 30.2 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":11.32914052,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.2/12.2 MB 108.1 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":11.414022872,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 60.7/60.7 MB 30.2 MB/s eta 0:00:00\n"}
+,{"stream_name":"stdout","time":11.414058629,"data":"   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.2/12.2 MB 108.1 MB/s eta 0:00:00\n"}
+,{"stream_name":"stderr","time":15.747762955,"data":"ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\n"}
+,{"stream_name":"stderr","time":15.747788801,"data":"dask-cuda 26.2.0 requires cuda-core==0.3.*, but you have cuda-core 1.0.1 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.747793262,"data":"dask-cuda 26.2.0 requires numba-cuda\u003c0.23.0,\u003e=0.22.1, but you have numba-cuda 0.30.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.74779742,"data":"distributed-ucxx-cu12 0.48.0 requires numba-cuda[cu12]\u003c0.23.0,\u003e=0.22.1, but you have numba-cuda 0.30.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.747801151,"data":"cuml-cu12 26.2.0 requires numba\u003c0.62.0,\u003e=0.60.0, but you have numba 0.65.1 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.7478046,"data":"cuml-cu12 26.2.0 requires numba-cuda[cu12]\u003c0.23.0,\u003e=0.22.1, but you have numba-cuda 0.30.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.74781818,"data":"ucxx-cu12 0.48.0 requires numba-cuda[cu12]\u003c0.23.0,\u003e=0.22.1, but you have numba-cuda 0.30.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.7478219,"data":"cudf-cu12 26.2.1 requires numba\u003c0.62.0,\u003e=0.60.0, but you have numba 0.65.1 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.748092241,"data":"cudf-cu12 26.2.1 requires numba-cuda[cu12]\u003c0.23.0,\u003e=0.22.2, but you have numba-cuda 0.30.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.837112289,"data":"ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\n"}
+,{"stream_name":"stderr","time":15.837142737,"data":"dask-cuda 26.2.0 requires cuda-core==0.3.*, but you have cuda-core 1.0.1 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.83714761,"data":"dask-cuda 26.2.0 requires numba-cuda\u003c0.23.0,\u003e=0.22.1, but you have numba-cuda 0.30.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.837151873,"data":"distributed-ucxx-cu12 0.48.0 requires numba-cuda[cu12]\u003c0.23.0,\u003e=0.22.1, but you have numba-cuda 0.30.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.83715611,"data":"cuml-cu12 26.2.0 requires numba\u003c0.62.0,\u003e=0.60.0, but you have numba 0.65.1 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.837160327,"data":"cuml-cu12 26.2.0 requires numba-cuda[cu12]\u003c0.23.0,\u003e=0.22.1, but you have numba-cuda 0.30.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.837164342,"data":"ucxx-cu12 0.48.0 requires numba-cuda[cu12]\u003c0.23.0,\u003e=0.22.1, but you have numba-cuda 0.30.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.837168076,"data":"cudf-cu12 26.2.1 requires numba\u003c0.62.0,\u003e=0.60.0, but you have numba 0.65.1 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.837171856,"data":"cudf-cu12 26.2.1 requires numba-cuda[cu12]\u003c0.23.0,\u003e=0.22.2, but you have numba-cuda 0.30.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.837175275,"data":"\n"}
+,{"stream_name":"stderr","time":15.837178353,"data":"ERROR: pip's dependency resolver does not currently take into account all the packages that are installed. This behaviour is the source of the following dependency conflicts.\n"}
+,{"stream_name":"stderr","time":15.837181898,"data":"dask-cuda 26.2.0 requires cuda-core==0.3.*, but you have cuda-core 1.0.1 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.83718529,"data":"dask-cuda 26.2.0 requires numba-cuda\u003c0.23.0,\u003e=0.22.1, but you have numba-cuda 0.30.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.837188661,"data":"distributed-ucxx-cu12 0.48.0 requires numba-cuda[cu12]\u003c0.23.0,\u003e=0.22.1, but you have numba-cuda 0.30.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.83719217,"data":"cuml-cu12 26.2.0 requires numba\u003c0.62.0,\u003e=0.60.0, but you have numba 0.65.1 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.837196025,"data":"cuml-cu12 26.2.0 requires numba-cuda[cu12]\u003c0.23.0,\u003e=0.22.1, but you have numba-cuda 0.30.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.837200865,"data":"ucxx-cu12 0.48.0 requires numba-cuda[cu12]\u003c0.23.0,\u003e=0.22.1, but you have numba-cuda 0.30.2 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.837204472,"data":"cudf-cu12 26.2.1 requires numba\u003c0.62.0,\u003e=0.60.0, but you have numba 0.65.1 which is incompatible.\n"}
+,{"stream_name":"stderr","time":15.837223618,"data":"cudf-cu12 26.2.1 requires numba-cuda[cu12]\u003c0.23.0,\u003e=0.22.2, but you have numba-cuda 0.30.2 which is incompatible.\n"}
+,{"stream_name":"stdout","time":15.85206874,"data":"UTF-8 mode: 1\n"}
+,{"stream_name":"stdout","time":17.87767272,"data":"ON_KAGGLE=True | DATA_DIR=/kaggle/input/cuad-master-clauses-cleaned | WORK_DIR=/kaggle/working\n"}
+,{"stream_name":"stdout","time":17.938417587,"data":"Resolved CSV via fallback search: /kaggle/input/datasets/antonisgantzos/cuad-master-clauses-cleaned/master_clauses_cleaned_sampled.csv\n"}
+,{"stream_name":"stdout","time":17.938445102,"data":"Data Loaded Successfully from /kaggle/input/datasets/antonisgantzos/cuad-master-clauses-cleaned/master_clauses_cleaned_sampled.csv\n"}
+,{"stream_name":"stdout","time":17.938450148,"data":"Total Contracts: 100\n"}
+,{"stream_name":"stdout","time":17.938453922,"data":"                                            Filename  \\\n"}
+,{"stream_name":"stdout","time":17.938459285,"data":"0  BORROWMONEYCOMINC06112020EX101JOINT VENTURE AG...   \n"}
+,{"stream_name":"stdout","time":17.938462812,"data":"1  EhaveInc2019051520FEX44411678816EX444License A...   \n"}
+,{"stream_name":"stdout","time":17.938466223,"data":"2  FuelcellEnergyInc201911068KEX10111868007EX101D...   \n"}
+,{"stream_name":"stdout","time":17.9384708,"data":"\n"}
+,{"stream_name":"stdout","time":17.938474655,"data":"                    Document Name            Document Name-Answer  \\\n"}
+,{"stream_name":"stdout","time":17.938478397,"data":"0         JOINT VENTURE AGREEMENT         JOINT VENTURE AGREEMENT   \n"}
+,{"stream_name":"stdout","time":17.938482505,"data":"1  LICENSE AND RESELLER AGREEMENT  LICENSE AND RESELLER AGREEMENT   \n"}
+,{"stream_name":"stdout","time":17.938486227,"data":"2     JOINT DEVELOPMENT AGREEMENT     JOINT DEVELOPMENT AGREEMENT   \n"}
+,{"stream_name":"stdout","time":17.938489792,"data":"\n"}
+,{"stream_name":"stdout","time":17.938493115,"data":"                                             Parties  \\\n"}
+,{"stream_name":"stdout","time":17.938496667,"data":"0  BorrowMoneycom inc individually the Member and...   \n"}
+,{"stream_name":"stdout","time":17.938500492,"data":"1  EHAVE INC COMPANION HEALTHCARE TECHNOLOGIES CO...   \n"}
+,{"stream_name":"stdout","time":17.938504147,"data":"2  FuelCell Energy Inc FCE ExxonMobil ExxonMobil ...   \n"}
+,{"stream_name":"stdout","time":17.938508117,"data":"\n"}
+,{"stream_name":"stdout","time":17.938511983,"data":"                                      Parties-Answer  \\\n"}
+,{"stream_name":"stdout","time":17.938515858,"data":"0  BorrowMoneycom inc JVLS LLC BorrowMoneycom inc...   \n"}
+,{"stream_name":"stdout","time":17.938519211,"data":"1  EHAVE INC Ehave COMPANION HEALTHCARE TECHNOLOG...   \n"}
+,{"stream_name":"stdout","time":17.938522532,"data":"2  ExxonMobil Research and Engineering Company Ex...   \n"}
+,{"stream_name":"stdout","time":17.938526198,"data":"\n"}
+,{"stream_name":"stdout","time":17.93853023,"data":"                  Agreement Date Agreement Date-Answer  \\\n"}
+,{"stream_name":"stdout","time":17.938534112,"data":"0  20th day of Friday March 2020                 32020   \n"}
+,{"stream_name":"stdout","time":17.93853787,"data":"1                October 30 2018                103018   \n"}
+,{"stream_name":"stdout","time":17.938542058,"data":"2                November 5 2019                 11519   \n"}
+,{"stream_name":"stdout","time":17.938545565,"data":"\n"}
+,{"stream_name":"stdout","time":17.93854877,"data":"                                      Effective Date Effective Date-Answer  \\\n"}
+,{"stream_name":"stdout","time":17.938552363,"data":"0  The duration of this Venture the Term will beg...                  3120   \n"}
+,{"stream_name":"stdout","time":17.938573144,"data":"1                                    October 30 2018                103018   \n"}
+,{"stream_name":"stdout","time":17.938576208,"data":"2               Effective Date means October 31 2019                103119   \n"}
+,{"stream_name":"stdout","time":17.938578569,"data":"\n"}
+,{"stream_name":"stdout","time":17.93858069,"data":"                                     Expiration Date  ...  \\\n"}
+,{"stream_name":"stdout","time":17.938582938,"data":"0  The duration of this Venture the Term will beg...  ...   \n"}
+,{"stream_name":"stdout","time":17.938585695,"data":"1  This term of this Agreement and the rights and...  ...   \n"}
+,{"stream_name":"stdout","time":17.93858802,"data":"2  Unless sooner terminated in accordance with th...  ...   \n"}
+,{"stream_name":"stdout","time":17.93859024,"data":"\n"}
+,{"stream_name":"stdout","time":17.938593791,"data":"                                  Liquidated Damages  \\\n"}
+,{"stream_name":"stdout","time":17.93859607,"data":"0                                                      \n"}
+,{"stream_name":"stdout","time":17.938598337,"data":"1  In addition CHT may terminate this Agreement a...   \n"}
+,{"stream_name":"stdout","time":17.938600512,"data":"2                                                      \n"}
+,{"stream_name":"stdout","time":17.938602795,"data":"\n"}
+,{"stream_name":"stdout","time":17.938604878,"data":"  Liquidated Damages-Answer Warranty Duration Warranty Duration-Answer  \\\n"}
+,{"stream_name":"stdout","time":17.938607221,"data":"0                        No                                         No   \n"}
+,{"stream_name":"stdout","time":17.9386095,"data":"1                       Yes                                         No   \n"}
+,{"stream_name":"stdout","time":17.938611717,"data":"2                        No                                         No   \n"}
+,{"stream_name":"stdout","time":17.938613988,"data":"\n"}
+,{"stream_name":"stdout","time":17.93861607,"data":"                                           Insurance Insurance-Answer  \\\n"}
+,{"stream_name":"stdout","time":17.938618288,"data":"0  The Venture may acquire insurance on behalf of...              Yes   \n"}
+,{"stream_name":"stdout","time":17.938620501,"data":"1  In the event of any material change or cancell...              Yes   \n"}
+,{"stream_name":"stdout","time":17.938622702,"data":"2                                                                  No   \n"}
+,{"stream_name":"stdout","time":17.938624915,"data":"\n"}
+,{"stream_name":"stdout","time":17.938664756,"data":"  Covenant Not To Sue Covenant Not To Sue-Answer  \\\n"}
+,{"stream_name":"stdout","time":17.938668592,"data":"0                                             No   \n"}
+,{"stream_name":"stdout","time":17.938672069,"data":"1                                             No   \n"}
+,{"stream_name":"stdout","time":17.938675431,"data":"2                                             No   \n"}
+,{"stream_name":"stdout","time":17.938678708,"data":"\n"}
+,{"stream_name":"stdout","time":17.938681856,"data":"                             Third Party Beneficiary  \\\n"}
+,{"stream_name":"stdout","time":17.938685368,"data":"0                                                      \n"}
+,{"stream_name":"stdout","time":17.938693599,"data":"1  Ehave shall be a third party beneficiary hereu...   \n"}
+,{"stream_name":"stdout","time":17.938696506,"data":"2                                                      \n"}
+,{"stream_name":"stdout","time":17.938698742,"data":"\n"}
+,{"stream_name":"stdout","time":17.938700932,"data":"  Third Party Beneficiary-Answer  \n"}
+,{"stream_name":"stdout","time":17.938707387,"data":"0                             No  \n"}
+,{"stream_name":"stdout","time":17.938709731,"data":"1                            Yes  \n"}
+,{"stream_name":"stdout","time":17.938711925,"data":"2                             No  \n"}
+,{"stream_name":"stdout","time":17.938714129,"data":"\n"}
+,{"stream_name":"stdout","time":17.93871626,"data":"[3 rows x 83 columns]\n"}
+,{"stream_name":"stdout","time":17.985805966,"data":"Filename\n"}
+,{"stream_name":"stdout","time":17.985831351,"data":"Document Name\n"}
+,{"stream_name":"stdout","time":17.985835822,"data":"Document NameAnswer\n"}
+,{"stream_name":"stdout","time":17.985839331,"data":"Parties\n"}
+,{"stream_name":"stdout","time":17.985842738,"data":"PartiesAnswer\n"}
+,{"stream_name":"stdout","time":17.985845989,"data":"Agreement Date\n"}
+,{"stream_name":"stdout","time":17.985851467,"data":"Agreement DateAnswer\n"}
+,{"stream_name":"stdout","time":17.985854886,"data":"Effective Date\n"}
+,{"stream_name":"stdout","time":17.985859909,"data":"Effective DateAnswer\n"}
+,{"stream_name":"stdout","time":17.985863698,"data":"Expiration Date\n"}
+,{"stream_name":"stdout","time":17.98586758,"data":"Expiration DateAnswer\n"}
+,{"stream_name":"stdout","time":17.985871197,"data":"Renewal Term\n"}
+,{"stream_name":"stdout","time":17.985875183,"data":"Renewal TermAnswer\n"}
+,{"stream_name":"stdout","time":17.985878987,"data":"Notice Period To Terminate Renewal\n"}
+,{"stream_name":"stdout","time":17.985882351,"data":"Notice Period To Terminate Renewal Answer\n"}
+,{"stream_name":"stdout","time":17.985885687,"data":"Governing Law\n"}
+,{"stream_name":"stdout","time":17.985888842,"data":"Governing LawAnswer\n"}
+,{"stream_name":"stdout","time":17.985892167,"data":"Most Favored Nation\n"}
+,{"stream_name":"stdout","time":17.985895372999998,"data":"Most Favored NationAnswer\n"}
+,{"stream_name":"stdout","time":17.985898653,"data":"Competitive Restriction Exception\n"}
+,{"stream_name":"stdout","time":17.985902013,"data":"Competitive Restriction ExceptionAnswer\n"}
+,{"stream_name":"stdout","time":17.985905309,"data":"NonCompete\n"}
+,{"stream_name":"stdout","time":17.985908487,"data":"NonCompeteAnswer\n"}
+,{"stream_name":"stdout","time":17.985911748,"data":"Exclusivity\n"}
+,{"stream_name":"stdout","time":17.985914917,"data":"ExclusivityAnswer\n"}
+,{"stream_name":"stdout","time":17.985918114,"data":"NoSolicit Of Customers\n"}
+,{"stream_name":"stdout","time":17.985923099,"data":"NoSolicit Of CustomersAnswer\n"}
+,{"stream_name":"stdout","time":17.985929918,"data":"NoSolicit Of Employees\n"}
+,{"stream_name":"stdout","time":17.985932182,"data":"NoSolicit Of EmployeesAnswer\n"}
+,{"stream_name":"stdout","time":17.98593435,"data":"NonDisparagement\n"}
+,{"stream_name":"stdout","time":17.985936487,"data":"NonDisparagementAnswer\n"}
+,{"stream_name":"stdout","time":17.985938617,"data":"Termination For Convenience\n"}
+,{"stream_name":"stdout","time":17.985940788,"data":"Termination For ConvenienceAnswer\n"}
+,{"stream_name":"stdout","time":17.985943524,"data":"RofrRofoRofn\n"}
+,{"stream_name":"stdout","time":17.985958501,"data":"RofrRofoRofnAnswer\n"}
+,{"stream_name":"stdout","time":17.985962816,"data":"Change Of Control\n"}
+,{"stream_name":"stdout","time":17.985966561,"data":"Change Of ControlAnswer\n"}
+,{"stream_name":"stdout","time":17.985970764,"data":"AntiAssignment\n"}
+,{"stream_name":"stdout","time":17.985974511,"data":"AntiAssignmentAnswer\n"}
+,{"stream_name":"stdout","time":17.985977804,"data":"RevenueProfit Sharing\n"}
+,{"stream_name":"stdout","time":17.985990217,"data":"RevenueProfit SharingAnswer\n"}
+,{"stream_name":"stdout","time":17.985993656,"data":"Price Restrictions\n"}
+,{"stream_name":"stdout","time":17.985996862,"data":"Price RestrictionsAnswer\n"}
+,{"stream_name":"stdout","time":17.986000042,"data":"Minimum Commitment\n"}
+,{"stream_name":"stdout","time":17.986003217,"data":"Minimum CommitmentAnswer\n"}
+,{"stream_name":"stdout","time":17.986006501,"data":"Volume Restriction\n"}
+,{"stream_name":"stdout","time":17.986009676,"data":"Volume RestrictionAnswer\n"}
+,{"stream_name":"stdout","time":17.986012878,"data":"Ip Ownership Assignment\n"}
+,{"stream_name":"stdout","time":17.986016097,"data":"Ip Ownership AssignmentAnswer\n"}
+,{"stream_name":"stdout","time":17.986019392,"data":"Joint Ip Ownership\n"}
+,{"stream_name":"stdout","time":17.986022641,"data":"Joint Ip OwnershipAnswer\n"}
+,{"stream_name":"stdout","time":17.98603886,"data":"License Grant\n"}
+,{"stream_name":"stdout","time":17.986056896,"data":"License GrantAnswer\n"}
+,{"stream_name":"stdout","time":17.986060999,"data":"NonTransferable License\n"}
+,{"stream_name":"stdout","time":17.986081291,"data":"NonTransferable LicenseAnswer\n"}
+,{"stream_name":"stdout","time":17.986085559,"data":"Affiliate LicenseLicensor\n"}
+,{"stream_name":"stdout","time":17.986089493,"data":"Affiliate LicenseLicensorAnswer\n"}
+,{"stream_name":"stdout","time":17.986093122,"data":"Affiliate LicenseLicensee\n"}
+,{"stream_name":"stdout","time":17.98609656,"data":"Affiliate LicenseLicenseeAnswer\n"}
+,{"stream_name":"stdout","time":17.986099945,"data":"UnlimitedAllYouCanEatLicense\n"}
+,{"stream_name":"stdout","time":17.986103694,"data":"UnlimitedAllYouCanEatLicenseAnswer\n"}
+,{"stream_name":"stdout","time":17.986107215,"data":"Irrevocable Or Perpetual License\n"}
+,{"stream_name":"stdout","time":17.986110737,"data":"Irrevocable Or Perpetual LicenseAnswer\n"}
+,{"stream_name":"stdout","time":17.9861142,"data":"Source Code Escrow\n"}
+,{"stream_name":"stdout","time":17.98611763,"data":"Source Code EscrowAnswer\n"}
+,{"stream_name":"stdout","time":17.986121083,"data":"PostTermination Services\n"}
+,{"stream_name":"stdout","time":17.986124472,"data":"PostTermination ServicesAnswer\n"}
+,{"stream_name":"stdout","time":17.986127907,"data":"Audit Rights\n"}
+,{"stream_name":"stdout","time":17.986131245,"data":"Audit RightsAnswer\n"}
+,{"stream_name":"stdout","time":17.986134639,"data":"Uncapped Liability\n"}
+,{"stream_name":"stdout","time":17.986138589,"data":"Uncapped LiabilityAnswer\n"}
+,{"stream_name":"stdout","time":17.986142975,"data":"Cap On Liability\n"}
+,{"stream_name":"stdout","time":17.986147333,"data":"Cap On LiabilityAnswer\n"}
+,{"stream_name":"stdout","time":17.986151532,"data":"Liquidated Damages\n"}
+,{"stream_name":"stdout","time":17.986155388,"data":"Liquidated DamagesAnswer\n"}
+,{"stream_name":"stdout","time":17.986158781,"data":"Warranty Duration\n"}
+,{"stream_name":"stdout","time":17.986162253,"data":"Warranty DurationAnswer\n"}
+,{"stream_name":"stdout","time":17.986165655,"data":"Insurance\n"}
+,{"stream_name":"stdout","time":17.986169001,"data":"InsuranceAnswer\n"}
+,{"stream_name":"stdout","time":17.986172423,"data":"Covenant Not To Sue\n"}
+,{"stream_name":"stdout","time":17.986175862,"data":"Covenant Not To SueAnswer\n"}
+,{"stream_name":"stdout","time":17.986179307,"data":"Third Party Beneficiary\n"}
+,{"stream_name":"stdout","time":17.986182742,"data":"Third Party BeneficiaryAnswer\n"}
+,{"stream_name":"stdout","time":18.003584083,"data":"Processing column: 'Filename'\n"}
+,{"stream_name":"stdout","time":18.00360369,"data":"Processing column: 'Document Name'\n"}
+,{"stream_name":"stdout","time":18.003625805,"data":"Processing column: 'Document NameAnswer'\n"}
+,{"stream_name":"stdout","time":18.003629777,"data":"Processing column: 'Parties'\n"}
+,{"stream_name":"stdout","time":18.003633972,"data":"Processing column: 'PartiesAnswer'\n"}
+,{"stream_name":"stdout","time":18.003640229,"data":"Processing column: 'Agreement Date'\n"}
+,{"stream_name":"stdout","time":18.003665281,"data":"Processing column: 'Agreement DateAnswer'\n"}
+,{"stream_name":"stdout","time":18.00367002,"data":"Processing column: 'Effective Date'\n"}
+,{"stream_name":"stdout","time":18.003673703,"data":"Processing column: 'Effective DateAnswer'\n"}
+,{"stream_name":"stdout","time":18.003677703,"data":"Processing column: 'Expiration Date'\n"}
+,{"stream_name":"stdout","time":18.003681291,"data":"Processing column: 'Expiration DateAnswer'\n"}
+,{"stream_name":"stdout","time":18.003684986,"data":"Processing column: 'Renewal Term'\n"}
+,{"stream_name":"stdout","time":18.003688663,"data":"Processing column: 'Renewal TermAnswer'\n"}
+,{"stream_name":"stdout","time":18.003692298,"data":"Processing column: 'Notice Period To Terminate Renewal'\n"}
+,{"stream_name":"stdout","time":18.003695991,"data":"Processing column: 'Notice Period To Terminate Renewal Answer'\n"}
+,{"stream_name":"stdout","time":18.003699577,"data":"Processing column: 'Governing Law'\n"}
+,{"stream_name":"stdout","time":18.003703067,"data":"Processing column: 'Governing LawAnswer'\n"}
+,{"stream_name":"stdout","time":18.003706614,"data":"Processing column: 'Most Favored Nation'\n"}
+,{"stream_name":"stdout","time":18.003715383,"data":"Processing column: 'Most Favored NationAnswer'\n"}
+,{"stream_name":"stdout","time":18.003720461,"data":"Processing column: 'Competitive Restriction Exception'\n"}
+,{"stream_name":"stdout","time":18.003728662,"data":"Processing column: 'Competitive Restriction ExceptionAnswer'\n"}
+,{"stream_name":"stdout","time":18.003731737,"data":"Processing column: 'NonCompete'\n"}
+,{"stream_name":"stdout","time":18.003734134,"data":"Processing column: 'NonCompeteAnswer'\n"}
+,{"stream_name":"stdout","time":18.003736528,"data":"Processing column: 'Exclusivity'\n"}
+,{"stream_name":"stdout","time":18.003757566,"data":"Processing column: 'ExclusivityAnswer'\n"}
+,{"stream_name":"stdout","time":18.003761661,"data":"Processing column: 'NoSolicit Of Customers'\n"}
+,{"stream_name":"stdout","time":18.003765693,"data":"Processing column: 'NoSolicit Of CustomersAnswer'\n"}
+,{"stream_name":"stdout","time":18.003769993,"data":"Processing column: 'NoSolicit Of Employees'\n"}
+,{"stream_name":"stdout","time":18.003774301,"data":"Processing column: 'NoSolicit Of EmployeesAnswer'\n"}
+,{"stream_name":"stdout","time":18.003778009,"data":"Processing column: 'NonDisparagement'\n"}
+,{"stream_name":"stdout","time":18.003781646,"data":"Processing column: 'NonDisparagementAnswer'\n"}
+,{"stream_name":"stdout","time":18.003785173,"data":"Processing column: 'Termination For Convenience'\n"}
+,{"stream_name":"stdout","time":18.003788757,"data":"Processing column: 'Termination For ConvenienceAnswer'\n"}
+,{"stream_name":"stdout","time":18.003792336,"data":"Processing column: 'RofrRofoRofn'\n"}
+,{"stream_name":"stdout","time":18.003795809,"data":"Processing column: 'RofrRofoRofnAnswer'\n"}
+,{"stream_name":"stdout","time":18.003799276,"data":"Processing column: 'Change Of Control'\n"}
+,{"stream_name":"stdout","time":18.003803102,"data":"Processing column: 'Change Of ControlAnswer'\n"}
+,{"stream_name":"stdout","time":18.003815792,"data":"Processing column: 'AntiAssignment'\n"}
+,{"stream_name":"stdout","time":18.003819333,"data":"Processing column: 'AntiAssignmentAnswer'\n"}
+,{"stream_name":"stdout","time":18.003822801,"data":"Processing column: 'RevenueProfit Sharing'\n"}
+,{"stream_name":"stdout","time":18.003826279,"data":"Processing column: 'RevenueProfit SharingAnswer'\n"}
+,{"stream_name":"stdout","time":18.003831621,"data":"Processing column: 'Price Restrictions'\n"}
+,{"stream_name":"stdout","time":18.003838855,"data":"Processing column: 'Price RestrictionsAnswer'\n"}
+,{"stream_name":"stdout","time":18.003855285,"data":"Processing column: 'Minimum Commitment'\n"}
+,{"stream_name":"stdout","time":18.003859943,"data":"Processing column: 'Minimum CommitmentAnswer'\n"}
+,{"stream_name":"stdout","time":18.003864251,"data":"Processing column: 'Volume Restriction'\n"}
+,{"stream_name":"stdout","time":18.003868933,"data":"Processing column: 'Volume RestrictionAnswer'\n"}
+,{"stream_name":"stdout","time":18.003873039,"data":"Processing column: 'Ip Ownership Assignment'\n"}
+,{"stream_name":"stdout","time":18.003877897,"data":"Processing column: 'Ip Ownership AssignmentAnswer'\n"}
+,{"stream_name":"stdout","time":18.003881503,"data":"Processing column: 'Joint Ip Ownership'\n"}
+,{"stream_name":"stdout","time":18.003885049,"data":"Processing column: 'Joint Ip OwnershipAnswer'\n"}
+,{"stream_name":"stdout","time":18.003888561,"data":"Processing column: 'License Grant'\n"}
+,{"stream_name":"stdout","time":18.003892092,"data":"Processing column: 'License GrantAnswer'\n"}
+,{"stream_name":"stdout","time":18.003895674,"data":"Processing column: 'NonTransferable License'\n"}
+,{"stream_name":"stdout","time":18.003899143,"data":"Processing column: 'NonTransferable LicenseAnswer'\n"}
+,{"stream_name":"stdout","time":18.003902681,"data":"Processing column: 'Affiliate LicenseLicensor'\n"}
+,{"stream_name":"stdout","time":18.003906225,"data":"Processing column: 'Affiliate LicenseLicensorAnswer'\n"}
+,{"stream_name":"stdout","time":18.003909713,"data":"Processing column: 'Affiliate LicenseLicensee'\n"}
+,{"stream_name":"stdout","time":18.003913216,"data":"Processing column: 'Affiliate LicenseLicenseeAnswer'\n"}
+,{"stream_name":"stdout","time":18.003916755,"data":"Processing column: 'UnlimitedAllYouCanEatLicense'\n"}
+,{"stream_name":"stdout","time":18.003920335,"data":"Processing column: 'UnlimitedAllYouCanEatLicenseAnswer'\n"}
+,{"stream_name":"stdout","time":18.003923931,"data":"Processing column: 'Irrevocable Or Perpetual License'\n"}
+,{"stream_name":"stdout","time":18.003929317,"data":"Processing column: 'Irrevocable Or Perpetual LicenseAnswer'\n"}
+,{"stream_name":"stdout","time":18.003936334,"data":"Processing column: 'Source Code Escrow'\n"}
+,{"stream_name":"stdout","time":18.003950427,"data":"Processing column: 'Source Code EscrowAnswer'\n"}
+,{"stream_name":"stdout","time":18.003954552,"data":"Processing column: 'PostTermination Services'\n"}
+,{"stream_name":"stdout","time":18.003958727,"data":"Processing column: 'PostTermination ServicesAnswer'\n"}
+,{"stream_name":"stdout","time":18.003962649,"data":"Processing column: 'Audit Rights'\n"}
+,{"stream_name":"stdout","time":18.003966826,"data":"Processing column: 'Audit RightsAnswer'\n"}
+,{"stream_name":"stdout","time":18.003970739,"data":"Processing column: 'Uncapped Liability'\n"}
+,{"stream_name":"stdout","time":18.003974336,"data":"Processing column: 'Uncapped LiabilityAnswer'\n"}
+,{"stream_name":"stdout","time":18.003977863,"data":"Processing column: 'Cap On Liability'\n"}
+,{"stream_name":"stdout","time":18.003981323,"data":"Processing column: 'Cap On LiabilityAnswer'\n"}
+,{"stream_name":"stdout","time":18.003988701,"data":"Processing column: 'Liquidated Damages'\n"}
+,{"stream_name":"stdout","time":18.003992267,"data":"Processing column: 'Liquidated DamagesAnswer'\n"}
+,{"stream_name":"stdout","time":18.003995765,"data":"Processing column: 'Warranty Duration'\n"}
+,{"stream_name":"stdout","time":18.003999261,"data":"Processing column: 'Warranty DurationAnswer'\n"}
+,{"stream_name":"stdout","time":18.004002849,"data":"Processing column: 'Insurance'\n"}
+,{"stream_name":"stdout","time":18.004006338,"data":"Processing column: 'InsuranceAnswer'\n"}
+,{"stream_name":"stdout","time":18.004009851,"data":"Processing column: 'Covenant Not To Sue'\n"}
+,{"stream_name":"stdout","time":18.004013435,"data":"Processing column: 'Covenant Not To SueAnswer'\n"}
+,{"stream_name":"stdout","time":18.004017006,"data":"Processing column: 'Third Party Beneficiary'\n"}
+,{"stream_name":"stdout","time":18.004020518,"data":"Processing column: 'Third Party BeneficiaryAnswer'\n"}
+,{"stream_name":"stdout","time":18.019051032,"data":"Filename\n"}
+,{"stream_name":"stdout","time":18.019069693,"data":"Document Name\n"}
+,{"stream_name":"stdout","time":18.019074125,"data":"Document Name_Answer\n"}
+,{"stream_name":"stdout","time":18.019077797,"data":"Parties\n"}
+,{"stream_name":"stdout","time":18.019081249,"data":"Parties_Answer\n"}
+,{"stream_name":"stdout","time":18.019084647,"data":"Agreement Date\n"}
+,{"stream_name":"stdout","time":18.019088019,"data":"Agreement Date_Answer\n"}
+,{"stream_name":"stdout","time":18.019091345,"data":"Effective Date\n"}
+,{"stream_name":"stdout","time":18.019096455,"data":"Effective Date_Answer\n"}
+,{"stream_name":"stdout","time":18.019103912,"data":"Expiration Date\n"}
+,{"stream_name":"stdout","time":18.019106339,"data":"Expiration Date_Answer\n"}
+,{"stream_name":"stdout","time":18.01910868,"data":"Renewal Term\n"}
+,{"stream_name":"stdout","time":18.019110952,"data":"Renewal Term_Answer\n"}
+,{"stream_name":"stdout","time":18.019117455,"data":"Notice Period To Terminate Renewal\n"}
+,{"stream_name":"stdout","time":18.019119953,"data":"Notice Period To Terminate Renewal_Answer\n"}
+,{"stream_name":"stdout","time":18.019122307,"data":"Governing Law\n"}
+,{"stream_name":"stdout","time":18.019124667,"data":"Governing Law_Answer\n"}
+,{"stream_name":"stdout","time":18.019126991,"data":"Most Favored Nation\n"}
+,{"stream_name":"stdout","time":18.019129351,"data":"Most Favored Nation_Answer\n"}
+,{"stream_name":"stdout","time":18.019131675,"data":"Competitive Restriction Exception\n"}
+,{"stream_name":"stdout","time":18.019134006,"data":"Competitive Restriction Exception_Answer\n"}
+,{"stream_name":"stdout","time":18.019136453,"data":"NonCompete\n"}
+,{"stream_name":"stdout","time":18.019138727,"data":"NonCompete_Answer\n"}
+,{"stream_name":"stdout","time":18.019141075,"data":"Exclusivity\n"}
+,{"stream_name":"stdout","time":18.019143334,"data":"Exclusivity_Answer\n"}
+,{"stream_name":"stdout","time":18.019145643,"data":"NoSolicit Of Customers\n"}
+,{"stream_name":"stdout","time":18.019147926,"data":"NoSolicit Of Customers_Answer\n"}
+,{"stream_name":"stdout","time":18.019150239,"data":"NoSolicit Of Employees\n"}
+,{"stream_name":"stdout","time":18.019152525,"data":"NoSolicit Of Employees_Answer\n"}
+,{"stream_name":"stdout","time":18.019154867,"data":"NonDisparagement\n"}
+,{"stream_name":"stdout","time":18.019160118,"data":"NonDisparagement_Answer\n"}
+,{"stream_name":"stdout","time":18.019162506,"data":"Termination For Convenience\n"}
+,{"stream_name":"stdout","time":18.019172705,"data":"Termination For Convenience_Answer\n"}
+,{"stream_name":"stdout","time":18.019175489,"data":"RofrRofoRofn\n"}
+,{"stream_name":"stdout","time":18.019196044,"data":"RofrRofoRofn_Answer\n"}
+,{"stream_name":"stdout","time":18.019198587,"data":"Change Of Control\n"}
+,{"stream_name":"stdout","time":18.019201175,"data":"Change Of Control_Answer\n"}
+,{"stream_name":"stdout","time":18.019203764,"data":"AntiAssignment\n"}
+,{"stream_name":"stdout","time":18.019206284,"data":"AntiAssignment_Answer\n"}
+,{"stream_name":"stdout","time":18.019208785,"data":"RevenueProfit Sharing\n"}
+,{"stream_name":"stdout","time":18.019211289,"data":"RevenueProfit Sharing_Answer\n"}
+,{"stream_name":"stdout","time":18.019213943,"data":"Price Restrictions\n"}
+,{"stream_name":"stdout","time":18.019216454,"data":"Price Restrictions_Answer\n"}
+,{"stream_name":"stdout","time":18.019219062,"data":"Minimum Commitment\n"}
+,{"stream_name":"stdout","time":18.019221572,"data":"Minimum Commitment_Answer\n"}
+,{"stream_name":"stdout","time":18.019224073,"data":"Volume Restriction\n"}
+,{"stream_name":"stdout","time":18.019226575,"data":"Volume Restriction_Answer\n"}
+,{"stream_name":"stdout","time":18.019229076,"data":"Ip Ownership Assignment\n"}
+,{"stream_name":"stdout","time":18.019231607,"data":"Ip Ownership Assignment_Answer\n"}
+,{"stream_name":"stdout","time":18.019234172,"data":"Joint Ip Ownership\n"}
+,{"stream_name":"stdout","time":18.019236676,"data":"Joint Ip Ownership_Answer\n"}
+,{"stream_name":"stdout","time":18.019239192,"data":"License Grant\n"}
+,{"stream_name":"stdout","time":18.01924168,"data":"License Grant_Answer\n"}
+,{"stream_name":"stdout","time":18.019244182,"data":"NonTransferable License\n"}
+,{"stream_name":"stdout","time":18.019246687,"data":"NonTransferable License_Answer\n"}
+,{"stream_name":"stdout","time":18.019249207,"data":"Affiliate LicenseLicensor\n"}
+,{"stream_name":"stdout","time":18.019251737,"data":"Affiliate LicenseLicensor_Answer\n"}
+,{"stream_name":"stdout","time":18.019254361,"data":"Affiliate LicenseLicensee\n"}
+,{"stream_name":"stdout","time":18.019256892,"data":"Affiliate LicenseLicensee_Answer\n"}
+,{"stream_name":"stdout","time":18.01925942,"data":"UnlimitedAllYouCanEatLicense\n"}
+,{"stream_name":"stdout","time":18.019261979,"data":"UnlimitedAllYouCanEatLicense_Answer\n"}
+,{"stream_name":"stdout","time":18.019264542,"data":"Irrevocable Or Perpetual License\n"}
+,{"stream_name":"stdout","time":18.019267089,"data":"Irrevocable Or Perpetual License_Answer\n"}
+,{"stream_name":"stdout","time":18.019269636,"data":"Source Code Escrow\n"}
+,{"stream_name":"stdout","time":18.019272141,"data":"Source Code Escrow_Answer\n"}
+,{"stream_name":"stdout","time":18.019274684,"data":"PostTermination Services\n"}
+,{"stream_name":"stdout","time":18.019278333,"data":"PostTermination Services_Answer\n"}
+,{"stream_name":"stdout","time":18.019281956,"data":"Audit Rights\n"}
+,{"stream_name":"stdout","time":18.019284528,"data":"Audit Rights_Answer\n"}
+,{"stream_name":"stdout","time":18.019287041,"data":"Uncapped Liability\n"}
+,{"stream_name":"stdout","time":18.019289555,"data":"Uncapped Liability_Answer\n"}
+,{"stream_name":"stdout","time":18.019292088,"data":"Cap On Liability\n"}
+,{"stream_name":"stdout","time":18.019294592,"data":"Cap On Liability_Answer\n"}
+,{"stream_name":"stdout","time":18.019297201,"data":"Liquidated Damages\n"}
+,{"stream_name":"stdout","time":18.019299716,"data":"Liquidated Damages_Answer\n"}
+,{"stream_name":"stdout","time":18.019306084,"data":"Warranty Duration\n"}
+,{"stream_name":"stdout","time":18.019311185,"data":"Warranty Duration_Answer\n"}
+,{"stream_name":"stdout","time":18.019313891,"data":"Insurance\n"}
+,{"stream_name":"stdout","time":18.019316406,"data":"Insurance_Answer\n"}
+,{"stream_name":"stdout","time":18.019318934,"data":"Covenant Not To Sue\n"}
+,{"stream_name":"stdout","time":18.019321447,"data":"Covenant Not To Sue_Answer\n"}
+,{"stream_name":"stdout","time":18.019324028,"data":"Third Party Beneficiary\n"}
+,{"stream_name":"stdout","time":18.019326602,"data":"Third Party Beneficiary_Answer\n"}
+,{"stream_name":"stdout","time":18.045259576,"data":"32 Task 1 categories:\n"}
+,{"stream_name":"stdout","time":18.045276922,"data":" - Most Favored Nation\n"}
+,{"stream_name":"stdout","time":18.045281349,"data":" - Competitive Restriction Exception\n"}
+,{"stream_name":"stdout","time":18.045285061,"data":" - NonCompete\n"}
+,{"stream_name":"stdout","time":18.045288727,"data":" - Exclusivity\n"}
+,{"stream_name":"stdout","time":18.045292304,"data":" - NoSolicit Of Customers\n"}
+,{"stream_name":"stdout","time":18.04529644,"data":" - NoSolicit Of Employees\n"}
+,{"stream_name":"stdout","time":18.045300032,"data":" - NonDisparagement\n"}
+,{"stream_name":"stdout","time":18.04530405,"data":" - Termination For Convenience\n"}
+,{"stream_name":"stdout","time":18.045307306,"data":" - RofrRofoRofn\n"}
+,{"stream_name":"stdout","time":18.045310634,"data":" - Change Of Control\n"}
+,{"stream_name":"stdout","time":18.045313877,"data":" - AntiAssignment\n"}
+,{"stream_name":"stdout","time":18.045317245,"data":" - RevenueProfit Sharing\n"}
+,{"stream_name":"stdout","time":18.045320963,"data":" - Price Restrictions\n"}
+,{"stream_name":"stdout","time":18.045324535,"data":" - Minimum Commitment\n"}
+,{"stream_name":"stdout","time":18.045328192,"data":" - Volume Restriction\n"}
+,{"stream_name":"stdout","time":18.045331971,"data":" - Ip Ownership Assignment\n"}
+,{"stream_name":"stdout","time":18.045335593,"data":" - Joint Ip Ownership\n"}
+,{"stream_name":"stdout","time":18.045338889,"data":" - License Grant\n"}
+,{"stream_name":"stdout","time":18.045343676,"data":" - NonTransferable License\n"}
+,{"stream_name":"stdout","time":18.045351025,"data":" - Affiliate LicenseLicensor\n"}
+,{"stream_name":"stdout","time":18.045353775,"data":" - Affiliate LicenseLicensee\n"}
+,{"stream_name":"stdout","time":18.045356059,"data":" - UnlimitedAllYouCanEatLicense\n"}
+,{"stream_name":"stdout","time":18.045358351,"data":" - Irrevocable Or Perpetual License\n"}
+,{"stream_name":"stdout","time":18.045360747,"data":" - Source Code Escrow\n"}
+,{"stream_name":"stdout","time":18.045362915,"data":" - PostTermination Services\n"}
+,{"stream_name":"stdout","time":18.045365063,"data":" - Audit Rights\n"}
+,{"stream_name":"stdout","time":18.045367174,"data":" - Uncapped Liability\n"}
+,{"stream_name":"stdout","time":18.045369398,"data":" - Cap On Liability\n"}
+,{"stream_name":"stdout","time":18.045371555,"data":" - Liquidated Damages\n"}
+,{"stream_name":"stdout","time":18.045373695,"data":" - Insurance\n"}
+,{"stream_name":"stdout","time":18.04537581,"data":" - Covenant Not To Sue\n"}
+,{"stream_name":"stdout","time":18.045378097,"data":" - Third Party Beneficiary\n"}
+,{"stream_name":"stdout","time":18.117287689,"data":"Contracts — train: 85, val: 15\n"}
+,{"stream_name":"stdout","time":18.117325136,"data":"Examples  — train: 2496, val: 448\n"}
+,{"stream_name":"stdout","time":18.134072075,"data":"TRAIN EXAMPLE:\n"}
+,{"stream_name":"stdout","time":18.134100084,"data":"{\n"}
+,{"stream_name":"stdout","time":18.134106727,"data":"  \"instruction\": \"Is the following contract text a \\\"Most Favored Nation\\\" clause? Answer strictly \\\"Yes\\\" or \\\"No\\\".\",\n"}
+,{"stream_name":"stdout","time":18.134112169,"data":"  \"category\": \"Most Favored Nation\",\n"}
+,{"stream_name":"stdout","time":18.13411888,"data":"  \"input\": \"CEIS hereby grants XFN and its Affiliates an exclusive license free of all thirdparty liens claims and encumbrances to and to permit others to during the Term in the Territoryomitteda store or cache the Content in one or more host computers controlled directly or indirectly by XFN or its Affiliatesnn b adapt translate modify reproduce copy amend revise or encode the Content andnn c publish broadcast distribute redistribute transmit display make available to the public or otherwise exploit the Content in any manner by any device or in media now or hereafter known During the Term CEIS agrees not to appoint any other licensees for the distribution of the Content in the Peoples Republic of China\",\n"}
+,{"stream_name":"stdout","time":18.134126527,"data":"  \"output\": \"No\"\n"}
+,{"stream_name":"stdout","time":18.134130005,"data":"}\n"}
+,{"stream_name":"stdout","time":18.134134763,"data":"\n"}
+,{"stream_name":"stdout","time":18.134141197,"data":"VAL EXAMPLE:\n"}
+,{"stream_name":"stdout","time":18.134143511,"data":"{\n"}
+,{"stream_name":"stdout","time":18.134145755,"data":"  \"instruction\": \"Is the following contract text a \\\"Most Favored Nation\\\" clause? Answer strictly \\\"Yes\\\" or \\\"No\\\".\",\n"}
+,{"stream_name":"stdout","time":18.134148535,"data":"  \"category\": \"Most Favored Nation\",\n"}
+,{"stream_name":"stdout","time":18.134152534,"data":"  \"input\": \"EXCEPT TO THE EXTENT DIRECT FORESEEABLE DAMAGES IN NO EVENT SHALL DIVERSINET BE LIABLE FOR ANY INDIRECT SPECIAL INCIDENTAL OR CONSEQUENTIAL DAMAGES INCLUDING WITHOUT LIMITATION ANY COMMERCIAL DAMAGES OR LOSSES AS A RESULT OF THE USE SALE OR DISTRIBUTION OF THE BUNDLED PRODUCT WHETHER BY WAY OF A LEGAL THEORY OF CONTRACT TORT INCLUDING NEGLIGENCE PRODUCT LIABILITY STRICT LIABILITY OR ANY OTHER THEORY EVEN IF DIVERSINET HAS BEEN INFORMED OF THE POSSIBILITY OF SUCH DAMAGES NOTWITHSTANDING THE ABOVE IN NO EVENT SHALL DIVERSINETS LIABILITY RELATING TO THIS AGREEMENT OR THE BUNDLED PRODUCT EXCEED ONE HUNDRED PERCENT 100 OF THE AGGREGATE AMOUNT OF THE LICENSE FEES ROYALTIES AND SUPPORT FEES PAID BY RESELLER IN THE TWELVE 12 MONTH PERIOD PRECEDING THE EVENT OR CIRCUMSTANCE GIVING RISE TO THE ALLEGED LIABILITY ON THE PART OF DIVERSINET With respect to the Operation Warranty Resellers sole remedy and Diversinets sole obligation shall be to cause the Product to operate substantially in accordance with its documentation in a timely manner THE FOREGOING STATES OUT THE ENTIRE LIABILITY OF DIVERSINET AND THE SOLE AND EXCLUSIVE REMEDY OF RESELLER AND ENDUSER WITH RESPECT TO THE INFRINGEMENT OF INTELLECTUAL PROPERTY RIGHTS BY THE PRODUCTS No action against Diversinet regardless of form including negligence arising out of any claimed breach of this Agreement or transactions under this Agreement may be brought by Reseller more than two years after the cause of action has accrued\",\n"}
+,{"stream_name":"stdout","time":18.134159972,"data":"  \"output\": \"No\"\n"}
+,{"stream_name":"stdout","time":18.134162249,"data":"}\n"}
+,{"stream_name":"stdout","time":18.13416446,"data":"\n"}
+,{"stream_name":"stdout","time":18.134166688,"data":"==================================================\n"}
+,{"stream_name":"stdout","time":18.134170526,"data":"\n"}
+,{"stream_name":"stdout","time":18.1341727,"data":"TRAIN EXAMPLE:\n"}
+,{"stream_name":"stdout","time":18.134174939,"data":"{\n"}
+,{"stream_name":"stdout","time":18.134177083,"data":"  \"instruction\": \"Is the following contract text a \\\"Competitive Restriction Exception\\\" clause? Answer strictly \\\"Yes\\\" or \\\"No\\\".\",\n"}
+,{"stream_name":"stdout","time":18.134183734,"data":"  \"category\": \"Competitive Restriction Exception\",\n"}
+,{"stream_name":"stdout","time":18.134200777,"data":"  \"input\": \"CEIS hereby grants XFN and its Affiliates an exclusive license free of all thirdparty liens claims and encumbrances to and to permit others to during the Term in the Territoryomitteda store or cache the Content in one or more host computers controlled directly or indirectly by XFN or its Affiliatesnn b adapt translate modify reproduce copy amend revise or encode the Content andnn c publish broadcast distribute redistribute transmit display make available to the public or otherwise exploit the Content in any manner by any device or in media now or hereafter known During the Term CEIS agrees not to appoint any other licensees for the distribution of the Content in the Peoples Republic of China\",\n"}
+,{"stream_name":"stdout","time":18.134207195,"data":"  \"output\": \"No\"\n"}
+,{"stream_name":"stdout","time":18.134211281,"data":"}\n"}
+,{"stream_name":"stdout","time":18.134215105,"data":"\n"}
+,{"stream_name":"stdout","time":18.134218341,"data":"VAL EXAMPLE:\n"}
+,{"stream_name":"stdout","time":18.134221582,"data":"{\n"}
+,{"stream_name":"stdout","time":18.134224789,"data":"  \"instruction\": \"Is the following contract text a \\\"Competitive Restriction Exception\\\" clause? Answer strictly \\\"Yes\\\" or \\\"No\\\".\",\n"}
+,{"stream_name":"stdout","time":18.134228756,"data":"  \"category\": \"Competitive Restriction Exception\",\n"}
+,{"stream_name":"stdout","time":18.134232719,"data":"  \"input\": \"Subject to payment of the Annual Minimum Commitment AMC defined herein Diversinet hereby grants to Reseller an exclusive non transferable and nonassignable right to market sell and sublicense those Diversinet products listed in Schedule 2 the Products within the territory listed in Schedule 3 the Territory to Canadian headquartered companies and governmental and broader public sector entities located in Canada\",\n"}
+,{"stream_name":"stdout","time":18.134237384,"data":"  \"output\": \"Yes\"\n"}
+,{"stream_name":"stdout","time":18.134242466,"data":"}\n"}
+,{"stream_name":"stdout","time":18.134248323,"data":"\n"}
+,{"stream_name":"stdout","time":18.134250491,"data":"==================================================\n"}
+,{"stream_name":"stdout","time":18.13425279,"data":"\n"}
+,{"stream_name":"stdout","time":18.134254862,"data":"TRAIN EXAMPLE:\n"}
+,{"stream_name":"stdout","time":18.134256977,"data":"{\n"}
+,{"stream_name":"stdout","time":18.134259075,"data":"  \"instruction\": \"Is the following contract text a \\\"NonCompete\\\" clause? Answer strictly \\\"Yes\\\" or \\\"No\\\".\",\n"}
+,{"stream_name":"stdout","time":18.134261656,"data":"  \"category\": \"NonCompete\",\n"}
+,{"stream_name":"stdout","time":18.13426412,"data":"  \"input\": \"CEIS hereby grants XFN and its Affiliates a nonexclusive license free of all thirdparty liens claims and encumbrances to and to permit others to during the Term in the Peoples Republic of Chinann a store or cache the Content in one or more host computers controlled directly or indirectly by XFN or its Affiliatesnn b adapt translate modify reproduce copy amend revise or encode the Content andnn c publish broadcast distribute redistribute transmit display make available to the public or otherwise exploit the Content in any manner by any device or inomittedmedia now or hereafter known CEIS hereby grants XFN and its Affiliates an exclusive license free of all thirdparty liens claims and encumbrances to and to permit others to during the Term in the Territoryomitteda store or cache the Content in one or more host computers controlled directly or indirectly by XFN or its Affiliatesnn b adapt translate modify reproduce copy amend revise or encode the Content andnn c publish broadcast distribute redistribute transmit display make available to the public or otherwise exploit the Content in any manner by any device or in media now or hereafter known\",\n"}
+,{"stream_name":"stdout","time":18.134270977,"data":"  \"output\": \"No\"\n"}
+,{"stream_name":"stdout","time":18.134273257,"data":"}\n"}
+,{"stream_name":"stdout","time":18.134275727,"data":"\n"}
+,{"stream_name":"stdout","time":18.134278809,"data":"VAL EXAMPLE:\n"}
+,{"stream_name":"stdout","time":18.134292852,"data":"{\n"}
+,{"stream_name":"stdout","time":18.134296746,"data":"  \"instruction\": \"Is the following contract text a \\\"NonCompete\\\" clause? Answer strictly \\\"Yes\\\" or \\\"No\\\".\",\n"}
+,{"stream_name":"stdout","time":18.134301584,"data":"  \"category\": \"NonCompete\",\n"}
+,{"stream_name":"stdout","time":18.134306085,"data":"  \"input\": \"After AMC termination Reseller shall generate at least the following amount of new sales of the Products in each contract year for the purpose of this Schedule 3 a contract year shall be each 12month period commencing after the termination by Reseller of the AMC Termination under Subsection 4a shall trigger a phaseout period during which Reseller may continue to provide products and services to Customers During the Term and for seven 7 years after the expiration or termination of this Agreement or such longer period as required by applicable law Reseller agrees to maintain complete books records and accounts relevant to the computation of and accounting for the amounts payable under this Agreement\",\n"}
+,{"stream_name":"stdout","time":18.134311908,"data":"  \"output\": \"No\"\n"}
+,{"stream_name":"stdout","time":18.1343152,"data":"}\n"}
+,{"stream_name":"stdout","time":18.134318336,"data":"\n"}
+,{"stream_name":"stdout","time":18.134321489,"data":"==================================================\n"}
+,{"stream_name":"stdout","time":18.134324874,"data":"\n"}
+,{"stream_name":"stdout","time":18.162219022,"data":"After balancing — train: 1282 examples\n"}
+,{"stream_name":"stdout","time":18.191762798,"data":"Train label counts: {'No': 641, 'Yes': 641}\n"}
+,{"stream_name":"stdout","time":18.191781384,"data":"Val   label counts: {'No': 323, 'Yes': 125}\n"}
+,{"stream_name":"stdout","time":18.191786001,"data":"\n"}
+,{"stream_name":"stdout","time":18.191792865,"data":"Sample of `No` examples (inputs must be real borrowed clause text):\n"}
+,{"stream_name":"stdout","time":18.191796969,"data":"\n"}
+,{"stream_name":"stdout","time":18.191800518,"data":"  category : PostTermination Services\n"}
+,{"stream_name":"stdout","time":18.191804468,"data":"  input    : Without limitation to the foregoing Arizona shall not file applications to register any Company Licensed IP or assist any person in doing the same or contest challenge or otherwise take any action adv...\n"}
+,{"stream_name":"stdout","time":18.19181042,"data":"\n"}
+,{"stream_name":"stdout","time":18.191813639,"data":"  category : NonCompete\n"}
+,{"stream_name":"stdout","time":18.191817013,"data":"  input    : The Company will compensate the Agent an additional two 2 percent through a discount off of the current price or promotional price of the Product times the total monthly units shipped at that price to...\n"}
+,{"stream_name":"stdout","time":18.191820999,"data":"\n"}
+,{"stream_name":"stdout","time":18.191825708,"data":"  category : Insurance\n"}
+,{"stream_name":"stdout","time":18.191832393,"data":"  input    : Each party hereby grants to the other a nonexclusive limited license to use its trademarks service marks or trade names only as specifically described in this Agreement\n"}
+,{"stream_name":"stdout","time":18.191843352,"data":"\n"}
+,{"stream_name":"stdout","time":18.191845658,"data":"OK — no placeholder strings found in `No` inputs.\n"}
+,{"stream_name":"stdout","time":18.244485136,"data":"Saved 1282 training samples and 448 validation samples.\n"}
+,{"stream_name":"stderr","time":19.815413302,"data":"Traceback (most recent call last):\n"}
+,{"stream_name":"stderr","time":19.81543825,"data":"  File \"\u003cstring\u003e\", line 1, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":19.815443675,"data":"  File \"/usr/local/lib/python3.12/dist-packages/papermill/execute.py\", line 131, in execute_notebook\n"}
+,{"stream_name":"stderr","time":19.815553912,"data":"    raise_for_execution_errors(nb, output_path)\n"}
+,{"stream_name":"stderr","time":19.815657276,"data":"  File \"/usr/local/lib/python3.12/dist-packages/papermill/execute.py\", line 251, in raise_for_execution_errors\n"}
+,{"stream_name":"stderr","time":19.815826152,"data":"    raise error\n"}
+,{"stream_name":"stderr","time":19.816127203,"data":"papermill.exceptions.PapermillExecutionError: \n"}
+,{"stream_name":"stderr","time":19.816137238,"data":"---------------------------------------------------------------------------\n"}
+,{"stream_name":"stderr","time":19.816141342999998,"data":"Exception encountered at \"In [18]\":\n"}
+,{"stream_name":"stderr","time":19.816144941,"data":"---------------------------------------------------------------------------\n"}
+,{"stream_name":"stderr","time":19.816148581,"data":"HTTPError                                 Traceback (most recent call last)\n"}
+,{"stream_name":"stderr","time":19.816152303,"data":"/usr/local/lib/python3.12/dist-packages/kaggle_web_client.py in make_post_request(self, data, endpoint, timeout)\n"}
+,{"stream_name":"stderr","time":19.816155526,"data":"     45         try:\n"}
+,{"stream_name":"stderr","time":19.81615867,"data":"---\u003e 46             with urllib.request.urlopen(req, timeout=timeout) as response:\n"}
+,{"stream_name":"stderr","time":19.816162296999998,"data":"     47                 response_json = json.loads(response.read())\n"}
+,{"stream_name":"stderr","time":19.816165696,"data":"\n"}
+,{"stream_name":"stderr","time":19.816169135,"data":"/usr/lib/python3.12/urllib/request.py in urlopen(url, data, timeout, cafile, capath, cadefault, context)\n"}
+,{"stream_name":"stderr","time":19.816172661,"data":"    214         opener = _opener\n"}
+,{"stream_name":"stderr","time":19.816176067,"data":"--\u003e 215     return opener.open(url, data, timeout)\n"}
+,{"stream_name":"stderr","time":19.816179438,"data":"    216 \n"}
+,{"stream_name":"stderr","time":19.81618277,"data":"\n"}
+,{"stream_name":"stderr","time":19.816185754,"data":"/usr/lib/python3.12/urllib/request.py in open(self, fullurl, data, timeout)\n"}
+,{"stream_name":"stderr","time":19.816189237,"data":"    520             meth = getattr(processor, meth_name)\n"}
+,{"stream_name":"stderr","time":19.816193023,"data":"--\u003e 521             response = meth(req, response)\n"}
+,{"stream_name":"stderr","time":19.816196474,"data":"    522 \n"}
+,{"stream_name":"stderr","time":19.816199668,"data":"\n"}
+,{"stream_name":"stderr","time":19.816202735,"data":"/usr/lib/python3.12/urllib/request.py in http_response(self, request, response)\n"}
+,{"stream_name":"stderr","time":19.816205957,"data":"    629         if not (200 \u003c= code \u003c 300):\n"}
+,{"stream_name":"stderr","time":19.816209475,"data":"--\u003e 630             response = self.parent.error(\n"}
+,{"stream_name":"stderr","time":19.816212918,"data":"    631                 'http', request, response, code, msg, hdrs)\n"}
+,{"stream_name":"stderr","time":19.816216282,"data":"\n"}
+,{"stream_name":"stderr","time":19.816229177,"data":"/usr/lib/python3.12/urllib/request.py in error(self, proto, *args)\n"}
+,{"stream_name":"stderr","time":19.816232800999998,"data":"    558             args = (dict, 'default', 'http_error_default') + orig_args\n"}
+,{"stream_name":"stderr","time":19.816236293,"data":"--\u003e 559             return self._call_chain(*args)\n"}
+,{"stream_name":"stderr","time":19.816239805,"data":"    560 \n"}
+,{"stream_name":"stderr","time":19.816243187,"data":"\n"}
+,{"stream_name":"stderr","time":19.816246509,"data":"/usr/lib/python3.12/urllib/request.py in _call_chain(self, chain, kind, meth_name, *args)\n"}
+,{"stream_name":"stderr","time":19.816249671,"data":"    491             func = getattr(handler, meth_name)\n"}
+,{"stream_name":"stderr","time":19.816252861,"data":"--\u003e 492             result = func(*args)\n"}
+,{"stream_name":"stderr","time":19.816256293,"data":"    493             if result is not None:\n"}
+,{"stream_name":"stderr","time":19.81625968,"data":"\n"}
+,{"stream_name":"stderr","time":19.816262663,"data":"/usr/lib/python3.12/urllib/request.py in http_error_default(self, req, fp, code, msg, hdrs)\n"}
+,{"stream_name":"stderr","time":19.816266616,"data":"    638     def http_error_default(self, req, fp, code, msg, hdrs):\n"}
+,{"stream_name":"stderr","time":19.816269818,"data":"--\u003e 639         raise HTTPError(req.full_url, code, msg, hdrs, fp)\n"}
+,{"stream_name":"stderr","time":19.816273724,"data":"    640 \n"}
+,{"stream_name":"stderr","time":19.816291307,"data":"\n"}
+,{"stream_name":"stderr","time":19.816294741,"data":"HTTPError: HTTP Error 400: Bad Request\n"}
+,{"stream_name":"stderr","time":19.816298365,"data":"\n"}
+,{"stream_name":"stderr","time":19.816301726,"data":"The above exception was the direct cause of the following exception:\n"}
+,{"stream_name":"stderr","time":19.816305469,"data":"\n"}
+,{"stream_name":"stderr","time":19.816309865,"data":"ConnectionError                           Traceback (most recent call last)\n"}
+,{"stream_name":"stderr","time":19.816313853,"data":"/tmp/ipykernel_23/2808318084.py in \u003ccell line: 0\u003e()\n"}
+,{"stream_name":"stderr","time":19.816317616,"data":"     13     return os.getenv(\"HF_TOKEN\")\n"}
+,{"stream_name":"stderr","time":19.816321404,"data":"     14 \n"}
+,{"stream_name":"stderr","time":19.816324978,"data":"---\u003e 15 hf_token = get_hf_token()\n"}
+,{"stream_name":"stderr","time":19.816328402,"data":"     16 assert hf_token, \"HF_TOKEN not found (Kaggle Secret or local .env)\"\n"}
+,{"stream_name":"stderr","time":19.816332567,"data":"     17 \n"}
+,{"stream_name":"stderr","time":19.816336288,"data":"\n"}
+,{"stream_name":"stderr","time":19.816339907,"data":"/tmp/ipykernel_23/2808318084.py in get_hf_token()\n"}
+,{"stream_name":"stderr","time":19.816343843,"data":"      8     if ON_KAGGLE:\n"}
+,{"stream_name":"stderr","time":19.816347865,"data":"      9         from kaggle_secrets import UserSecretsClient\n"}
+,{"stream_name":"stderr","time":19.816351641,"data":"---\u003e 10         return UserSecretsClient().get_secret(\"HF_TOKEN\")\n"}
+,{"stream_name":"stderr","time":19.816355546,"data":"     11     from dotenv import load_dotenv\n"}
+,{"stream_name":"stderr","time":19.816359575,"data":"     12     load_dotenv()\n"}
+,{"stream_name":"stderr","time":19.816363647,"data":"\n"}
+,{"stream_name":"stderr","time":19.81636718,"data":"/usr/local/lib/python3.12/dist-packages/kaggle_secrets.py in get_secret(self, label)\n"}
+,{"stream_name":"stderr","time":19.816371165,"data":"     62             'Label': label,\n"}
+,{"stream_name":"stderr","time":19.816379278,"data":"     63         }\n"}
+,{"stream_name":"stderr","time":19.816383041,"data":"---\u003e 64         response_json = self.web_client.make_post_request(request_body, self.GET_USER_SECRET_BY_LABEL_ENDPOINT)\n"}
+,{"stream_name":"stderr","time":19.816387101,"data":"     65         if 'secret' not in response_json:\n"}
+,{"stream_name":"stderr","time":19.816390911,"data":"     66             raise BackendError(\n"}
+,{"stream_name":"stderr","time":19.816394165,"data":"\n"}
+,{"stream_name":"stderr","time":19.816397821,"data":"/usr/local/lib/python3.12/dist-packages/kaggle_web_client.py in make_post_request(self, data, endpoint, timeout)\n"}
+,{"stream_name":"stderr","time":19.816402005,"data":"     56                 raise ConnectionError(\n"}
+,{"stream_name":"stderr","time":19.816405674,"data":"     57                     'Timeout error trying to communicate with service. Please ensure internet is on.') from e\n"}
+,{"stream_name":"stderr","time":19.81640962,"data":"---\u003e 58             raise ConnectionError(\n"}
+,{"stream_name":"stderr","time":19.816413335,"data":"     59                 'Connection error trying to communicate with service.') from e\n"}
+,{"stream_name":"stderr","time":19.81641732,"data":"     60         except HTTPError as e:\n"}
+,{"stream_name":"stderr","time":19.816421335,"data":"\n"}
+,{"stream_name":"stderr","time":19.816424424,"data":"ConnectionError: Connection error trying to communicate with service.\n"}
+,{"stream_name":"stderr","time":19.816428093,"data":"\n"}
+,{"stream_name":"stderr","time":21.86680716,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":21.866832192,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":22.02673981,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":22.026768357,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":22.613081928,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to notebook\n"}
+,{"stream_name":"stderr","time":22.921996058,"data":"[NbConvertApp] Writing 99462 bytes to __notebook__.ipynb\n"}
+,{"stream_name":"stderr","time":25.289751166,"data":"[NbConvertApp] Converting notebook __notebook__.ipynb to html\n"}
+,{"stream_name":"stderr","time":26.13396132,"data":"[NbConvertApp] Writing 414826 bytes to __results__.html\n"}
+]

@@ -2,11 +2,15 @@
 
 **Notebook:** [`llm_fine_tuning_LORA_task1_v2.ipynb`](../../llm_fine_tuning_LORA_task1_v2.ipynb)
 **Companion design doc:** [option_a_kaggle_remote_gpu.md](option_a_kaggle_remote_gpu.md)
-**Last verified:** 2026-06-13
+**Last verified:** 2026-06-13 — **full end-to-end run succeeded on Kaggle (T4×2).**
 
 This document describes **exactly where the pipeline stands today**, how it interacts with Kaggle, and
 the concrete differences between running it **locally** versus **on Kaggle's GPU**. It is the
 single source of truth for "what works, what doesn't, and why."
+
+> **Status: GREEN.** After attaching the `HF_TOKEN` secret and selecting the **GPU T4×2** accelerator,
+> the notebook trained end-to-end on Kaggle: final training loss **0.3035**, validation accuracy
+> **0.91**, adapter saved to `/kaggle/working/` and downloadable. See §2 and §7.
 
 ---
 
@@ -27,12 +31,14 @@ opening the Kaggle web editor** to run cells.
 | Notebook is environment-aware (`ON_KAGGLE`) | ✅ Works | log shows `ON_KAGGLE=True \| DATA_DIR=… \| WORK_DIR=/kaggle/working` |
 | Push → run on GPU container → pull output | ✅ Works | `kaggle_output/` contains pulled JSONL + log |
 | Data-prep half (load, clean, label, write JSONL) | ✅ Runs on Kaggle | log: `Saved 1282 training samples and 448 validation samples.` |
-| **Model load + QLoRA training (cells 18+)** | ❌ **Never executed successfully** | run died at cell `In[18]` |
-| Adapter pulled back to local disk | ⛔ Blocked | depends on training succeeding first |
+| HF gated-model access via `HF_TOKEN` secret | ✅ Works | `Token belongs to: AntonisGantzos123`; `Access granted to meta-llama/Llama-3.2-1B` |
+| **Model load + QLoRA training (cells 18+)** | ✅ **Works on Kaggle GPU** | `Training finished — final training loss: 0.3035`; saved to `/kaggle/working/llama-3.2-1B-cuad-task1-smoke-test/` |
+| Validation evaluation | ✅ Works | accuracy **0.91** (Yes F1 0.85 / No F1 0.93), macro-F1 0.89 |
+| Adapter as downloadable output | ✅ Works | `adapter_model.safetensors`, `adapter_config.json`, `README.md` in `/kaggle/working/` → pull with `kernels output` |
 
-**Bottom line:** the *plumbing* is complete and proven — a notebook really does execute on Kaggle's
-GPU and the output comes back to the local `kaggle_output/` folder. **But no fine-tuning has happened
-yet.** The run aborts before the training cell because of the two blockers in §7.
+**Bottom line:** the pipeline now runs **end-to-end on Kaggle** — push from VS Code, train on the T4×2
+GPU, pull the adapter back to `kaggle_output/`. The two former blockers (HF secret, GPU type) are
+resolved; see §7 for what they were and the prerequisites that must stay in place.
 
 ---
 
@@ -144,27 +150,75 @@ def get_hf_token():
 
 ---
 
-## 7. Known blockers (why the last run failed before training)
+## 7. Prerequisites & resolved blockers
 
-**Blocker 1 — `HF_TOKEN` Kaggle Secret is not attached.**
-The last Kaggle run died at cell `In[18]`:
+Two things had to be in place before training would run. **Both are now satisfied** — keep them in place
+for every future run.
+
+### Prerequisite A — `HF_TOKEN` Kaggle Secret must be attached *(RESOLVED)*
+
+An earlier run died at cell `In[18]` with:
 
 ```
 UserSecretsClient().get_secret("HF_TOKEN")
-→ HTTPError: HTTP Error 400: Bad Request
-→ ConnectionError: Connection error trying to communicate with service.
+→ HTTPError: HTTP Error 400: Bad Request   (secret not found / not attached)
 ```
 
-A 400 from the secrets service means the secret labelled `HF_TOKEN` is **not found / not attached** to
-the notebook. The run aborted here, **before** the model download and training cell ever ran.
-*Fix:* attach + enable the `HF_TOKEN` secret (§6), then re-push.
+After adding the secret (Add-ons → Secrets, named exactly `HF_TOKEN`, enabled), the successful run logs:
 
-**Blocker 2 — `run.ps1` placeholder guard fires on the real username.**
+```
+Token belongs to: AntonisGantzos123  (type: user)
+✅ Access granted to meta-llama/Llama-3.2-1B — you can run the load cell below.
+```
+
+Keep this secret attached and enabled on the notebook (and keep the HF gated-model license accepted).
+
+### Prerequisite B — accelerator MUST be set to **GPU T4×2** *(REQUIRED before every run)*
+
+**Before executing the notebook on Kaggle, set the accelerator to “GPU T4×2”** (notebook **Settings →
+Accelerator → GPU T4 x2**). This is required — with the wrong accelerator the run hits device conflicts.
+
+The notebook is written for the T4×2 machine: it exposes **two** GPUs, and the very first code cell
+masks the second one so training stays on a single device:
+
+```python
+# Kaggle "GPU T4 x2" exposes 2 GPUs. device_map="auto" would shard across cuda:0/cuda:1 and
+# Trainer's DataParallel needs everything on cuda:0 -> "...found one on cuda:1". Hide GPU 1.
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+```
+
+So the contract is: **select T4×2 + the notebook masks GPU 1 → no DataParallel / sharding conflict.**
+The successful run used exactly this and trained cleanly. (Note: `kernel-metadata.json` only carries
+`enable_gpu: true`; the *specific* T4×2 machine type is chosen in the notebook's accelerator setting.)
+
+### Still outstanding — `run.ps1` placeholder guard bug (cosmetic, not blocking)
+
 [`kaggle/run.ps1`](../../kaggle/run.ps1) throws if the kernel id starts with `antonisgantzos/` — but that
-**is** the real username, so `.\kaggle\run.ps1` aborts immediately every time. (The guard was meant to
-catch the literal `YOUR_KAGGLE_USERNAME` placeholder.) The existing Kaggle run was pushed manually with
+**is** the real username, so `.\kaggle\run.ps1` aborts immediately. (The guard was meant to catch the
+literal `YOUR_KAGGLE_USERNAME` placeholder.) Runs so far were pushed manually with
 `python -m kaggle kernels push -p kaggle`. *Fix:* change the guard to test for the literal placeholder
 string, not the username.
+
+---
+
+## 7a. Successful run — results (reference)
+
+From the green run (`cuad-task1-finetune` log, ~27 min wall-clock total):
+
+| Metric | Value |
+|---|---|
+| Model | `meta-llama/Llama-3.2-1B` (4-bit QLoRA, smoke-test config) |
+| Training data | 1282 balanced examples (641 Yes / 641 No), 1 epoch |
+| Training time | `Starting training...` @ 79s → `Training finished` @ 1490s (~23.5 min) |
+| Final training loss | **0.3035** |
+| Saved artifacts | `/kaggle/working/llama-3.2-1B-cuad-task1-smoke-test/` → `adapter_config.json`, `adapter_model.safetensors`, `README.md` |
+| Validation accuracy | **0.91** (448 examples) |
+| Per-class | Yes: P 0.78 / R 0.93 / F1 0.85 (n=125) · No: P 0.97 / R 0.90 / F1 0.93 (n=323) |
+| Confusion matrix | `[[116, 9], [32, 291]]` (rows=true [Yes,No], cols=pred [Yes,No]) |
+
+Dependency-resolver `ERROR:` lines about `numba-cuda` / `cudf` / `dask-cuda` early in the log are
+**harmless** — they come from the Kaggle base image's preinstalled RAPIDS stack, not from this notebook,
+and do not affect training.
 
 ---
 
@@ -178,7 +232,7 @@ All under [`kaggle/`](../../kaggle/):
 | `dataset_payload/dataset-metadata.json` | dataset id/title/license for the uploaded CSVs |
 | `dataset_payload/CUAD_v1/*.csv` | the staged cleaned CSVs (the only data Kaggle needs, ~5 MB) |
 | `stage_data.ps1` | copies the cleaned CSVs from `data/` into `dataset_payload/` |
-| `run.ps1` | convenience wrapper: `push` → poll `status` → `output` (currently broken — Blocker 2) |
+| `run.ps1` | convenience wrapper: `push` → poll `status` → `output` (currently aborts on the username-guard bug, §7 — push manually for now) |
 | `README.md` | the operational run-book |
 
 > Note: on this machine the `kaggle.exe` shim is blocked by Windows Application Control, so the CLI is
@@ -202,13 +256,13 @@ Trade-off: the token lives in a private dataset rather than the secrets vault.
 
 | Aspect | Local (VS Code) | Kaggle (pushed kernel) |
 |---|---|---|
-| Accelerator | none — `torch 2.12.0+cpu`, `cuda_available=False` | T4 GPU (single GPU; `CUDA_VISIBLE_DEVICES="0"` hides the 2nd to avoid DataParallel sharding) |
+| Accelerator | none — `torch 2.12.0+cpu`, `cuda_available=False` | **GPU T4×2** (must be selected, §7-B); notebook masks GPU 1 via `CUDA_VISIBLE_DEVICES="0"` to avoid DataParallel sharding |
 | `ON_KAGGLE` | `False` | `True` |
 | `DATA_DIR` | `data/CUAD_v1` (or `$DATA_DIR`) | `/kaggle/input/cuad-master-clauses-cleaned` (read-only) |
 | `WORK_DIR` | repo root `.` | `/kaggle/working` (only persisted dir) |
 | HF token source | `.env` / `$env:HF_TOKEN` | Kaggle Secret `HF_TOKEN` (attached + enabled) |
 | Cells 1–17 (data prep) | ✅ run | ✅ run |
-| Cells 18+ (load + train) | ❌ `Cannot access accelerator device…` | ✅ run (once token blocker cleared) |
+| Cells 18+ (load + train) | ❌ `Cannot access accelerator device…` | ✅ run (HF secret + T4×2 in place) |
 | Saved adapter | `WORK_DIR/<new_model_name>` = repo root (won't get here without GPU) | `/kaggle/working/<new_model_name>` → downloadable output |
 | Execution style | interactive, cell-by-cell | batch, top-to-bottom (papermill), ~12 h cap, 30 GPU-h/week |
 | Dependencies | CPU torch; `dotenv` for token | base image has torch/transformers; `trl` 1.x etc. pinned in a setup cell |
@@ -220,10 +274,12 @@ Key training config (cell ~ execution_count 19, on Kaggle): `MODEL_ID="meta-llam
 
 ---
 
-## 10. The run loop (once blockers are cleared)
+## 10. The run loop (working)
 
 ```powershell
 .\env\Scripts\Activate.ps1
+
+# 0. ONE-TIME / per-run on Kaggle: HF_TOKEN secret attached (§7-A) + accelerator = GPU T4×2 (§7-B)
 
 # 1. (only if CSVs changed) re-stage + version the dataset
 .\kaggle\stage_data.ps1
@@ -243,11 +299,20 @@ A successful run ends with `adapter_model.safetensors` + `adapter_config.json` u
 
 ---
 
-## 11. Next steps to a green end-to-end run
+## 11. Next steps / improvements
 
-1. Attach + enable the `HF_TOKEN` Kaggle Secret (or wire the private-dataset token of §8).
-2. Fix the `run.ps1` username guard (Blocker 2).
-3. Re-push; confirm the log gets **past cell 18** into the `SFTTrainer` loop.
-4. Confirm `adapter_model.safetensors` lands in `kaggle_output/`.
-5. *(Optional)* add a fast-fail guard at the top of the GPU cells so a local run prints
+1. **Persist evaluation + training results as files in `/kaggle/working/`** so they come back in
+   `kaggle_output/` instead of living only in the run log. Today the metrics
+   (accuracy / precision / recall / F1, confusion matrix) and the final training loss are only
+   `print`ed — they show in the Kaggle log but are **not** downloadable artifacts. Have the notebook
+   write them to `WORK_DIR` next to the adapter, e.g.:
+   - `WORK_DIR / "eval_metrics.json"` — the classification report as a dict (`classification_report(..., output_dict=True)`), plus the confusion matrix and overall accuracy.
+   - `WORK_DIR / "eval_report.txt"` — the human-readable `classification_report` string.
+   - `WORK_DIR / "train_metrics.json"` — final training loss + key `SFTConfig` hyper-params (so each run is self-describing).
+
+   After this, `kaggle kernels output` pulls the trained adapter **and** the eval/training results into
+   `kaggle_output/` in one step, giving a complete, reproducible record per run.
+2. Fix the `run.ps1` username guard (§7) so the wrapper works instead of pushing manually.
+3. *(Optional)* add a fast-fail guard at the top of the GPU cells so a local run prints
    "run this on Kaggle" instead of the cryptic accelerator error.
+4. *(Optional)* scale past the smoke test: larger sample / more epochs, or swap to the 8B base model.

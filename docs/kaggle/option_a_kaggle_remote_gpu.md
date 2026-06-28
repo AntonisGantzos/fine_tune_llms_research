@@ -247,10 +247,10 @@ no change required. (If you prefer to be explicit, change the save target to
 kaggle kernels push -p kaggle
 
 # poll until complete
-kaggle kernels status YOUR_KAGGLE_USERNAME/cuad-task1-finetune
+kaggle kernels status antonisgantzos/cuad-task1-finetune
 
 # when "complete", download outputs (the saved adapter folder + rendered notebook + logs)
-kaggle kernels output YOUR_KAGGLE_USERNAME/cuad-task1-finetune -p .\kaggle_output
+kaggle kernels output antonisgantzos/cuad-task1-finetune -p .\kaggle_output
 ```
 
 The trained adapter (`adapter_model.safetensors`, `adapter_config.json`) lands under `.\kaggle_output\`.

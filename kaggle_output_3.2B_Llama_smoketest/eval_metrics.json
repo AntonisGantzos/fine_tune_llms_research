@@ -1,0 +1,49 @@
+{
+  "model_name": "llama-3.2-1B-cuad-task1-smoke-test",
+  "n_validation_examples": 448,
+  "accuracy": 0.8973214285714286,
+  "classification_report": {
+    "Yes": {
+      "precision": 0.7581699346405228,
+      "recall": 0.928,
+      "f1-score": 0.8345323741007195,
+      "support": 125.0
+    },
+    "No": {
+      "precision": 0.9694915254237289,
+      "recall": 0.8854489164086687,
+      "f1-score": 0.9255663430420712,
+      "support": 323.0
+    },
+    "accuracy": 0.8973214285714286,
+    "macro avg": {
+      "precision": 0.8638307300321258,
+      "recall": 0.9067244582043343,
+      "f1-score": 0.8800493585713953,
+      "support": 448.0
+    },
+    "weighted avg": {
+      "precision": 0.9105290279953788,
+      "recall": 0.8973214285714286,
+      "f1-score": 0.9001662401008458,
+      "support": 448.0
+    }
+  },
+  "confusion_matrix": {
+    "labels": [
+      "Yes",
+      "No"
+    ],
+    "rows_are_true_cols_are_pred": true,
+    "matrix": [
+      [
+        116,
+        9
+      ],
+      [
+        37,
+        286
+      ]
+    ]
+  }
+}
