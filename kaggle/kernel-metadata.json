@@ -1,7 +1,7 @@
 {
-  "id": "antonisgantzos/cuad-task1-finetune",
-  "title": "CUAD Task1 Finetune",
-  "code_file": "../llm_fine_tuning_LORA_task1_v2.ipynb",
+  "id": "antonisgantzos/cuad-task1-no-finetune",
+  "title": "CUAD Task1 No Finetune",
+  "code_file": "../llama_3.1_task_1_no_fine_tune.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": true,
