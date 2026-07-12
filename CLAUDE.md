@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Research project for fine-tuning LLMs (Llama 3 / Mistral) on legal contract review tasks using QLoRA on consumer hardware. Work is done primarily in Jupyter notebooks.
+Research project for fine-tuning LLMs on legal contract review tasks using QLoRA. Work is done in Jupyter notebooks, edited locally (VS Code, CPU-only machine) and **trained remotely on Kaggle's free GPU** via the Kaggle CLI — see "Kaggle Workflow" below.
 
 **Three tasks:**
-- **T1 – Risk Clause Recognition:** Binary clause identification (32 Yes/No categories) from CUAD
-- **T2 – Structured Entity Extraction:** Extract dates/names/terms as valid JSON (9 categories) from CUAD
-- **T3 – Jurisdiction Identification:** Provision classification from LEDGAR (not yet implemented)
+- **T1 – Risk Clause Recognition:** Binary Yes/No clause identification from CUAD (all clause categories not used by T2). **Implemented and evaluated** — fine-tuned vs. baseline comparison done.
+- **T2 – Structured Entity Extraction:** Extract dates/names/terms as valid JSON (9 categories: Document Name, Parties, Agreement Date, Effective Date, Expiration Date, Renewal Term, Notice Period To Terminate Renewal, Governing Law, Warranty Duration) from CUAD. **In progress** — notebook and JSONL generation exist; training run pending.
+- **T3 – Jurisdiction Identification:** Provision classification from LEDGAR. **Not yet implemented.**
 
 ## Environment Setup
 
@@ -24,34 +24,68 @@ pip install -r requirements.txt
 jupyter notebook
 ```
 
-The `DATA_DIR` environment variable controls the data root (defaults to `data`). CUAD files are expected at `data/CUAD_v1/`:
-- `data/cuad/master_clauses.csv` — primary training source (545 contracts, 41 clause categories)
-- `data/cuad/master_clauses_cleaned.csv` — preprocessed version used by the LoRA notebook
-- `data/cuad/master_clauses_cleaned_sampled.csv` — small sample for quick iteration
-- `data/cuad/CUAD_v1.json` — SQuAD-format JSON (used for EDA only, not for training)
-- `data/cuad/train/cuad_train.jsonl` — generated training JSONL
-- `data/cuad/validation/cuad_validation.jsonl` — generated validation JSONL
+Notes:
+- `nbstripout` is configured — notebook outputs are stripped on commit.
+- The local machine has **no GPU** (`torch` is CPU-only). Data-prep cells run locally; model-loading/training cells only run on Kaggle.
+- HF token: from `.env` / env var locally, from Kaggle Secrets (`HF_TOKEN`) on Kaggle. Gated Llama models require an accepted license on the same HF account.
+
+## Data Layout
+
+The `DATA_DIR` environment variable controls the data root (defaults to `data`). Raw CUAD lives at `data/CUAD_v1/` (git-ignored):
+- `data/CUAD_v1/master_clauses.csv` — primary source (545 contracts, 41 clause categories)
+- `data/CUAD_v1/master_clauses_cleaned.csv` — preprocessed version used by the training notebooks (negative placeholders replaced with real non-related text)
+- `data/CUAD_v1/master_clauses_cleaned_sampled.csv` — small sample for quick iteration
+- `data/CUAD_v1/CUAD_v1.json` — SQuAD-format JSON (EDA only, not for training)
+
+Generated JSONL (written by the notebooks to `WORK_DIR/cuad/`, which locally is the repo root):
+- `cuad/train/cuad_train.jsonl` + `cuad/validation/cuad_validation.jsonl` — T1
+- `cuad/train/cuad_task2_train.jsonl` + `cuad/validation/cuad_task2_validation.jsonl` — T2
+
+Helper scripts in `scripts/`: `download_cuad.py`, `preprocess_values_cuad.py` (produces the cleaned CSV), `sample_master_clauses.py`.
 
 ## Notebooks
 
-- [CUAD_dataset_exploration.ipynb](CUAD_dataset_exploration.ipynb) — EDA: loads CSV/JSON, cleans column names, analyzes class imbalance, context lengths, and previews instruction-tuning format
-- [llm_fine_tuning_LORA.ipynb](llm_fine_tuning_LORA.ipynb) — Full training pipeline: loads `master_clauses_cleaned.csv`, formats to JSONL, then runs QLoRA fine-tuning via `SFTTrainer`
+- [CUAD_dataset_exploration.ipynb](CUAD_dataset_exploration.ipynb) — EDA: class imbalance, context lengths, instruction-format preview
+- [llm_fine_tuning_LORA_task1_v2.ipynb](llm_fine_tuning_LORA_task1_v2.ipynb) — **T1 training pipeline**: cleaned CSV → JSONL → QLoRA fine-tune via `SFTTrainer` → validation eval (`eval_metrics.json`, `eval_report.txt`)
+- [llm_fine_tuning_LORA_task2.ipynb](llm_fine_tuning_LORA_task2.ipynb) — **T2 training pipeline**, same structure as T1 v2 (33 cells, mirrors it deliberately)
+- [llama_3.1_task_1_no_fine_tune.ipynb](llama_3.1_task_1_no_fine_tune.ipynb) — T1 **baseline**: evaluates the un-fine-tuned base model on the same validation set; writes to `no_finetune_baseline/`
+- [kaggle_results_visualization.ipynb](kaggle_results_visualization.ipynb) — visualizes one run directory (point `RESULTS_DIR` at e.g. `kaggle_output/`)
+- [finetune_vs_baseline_comparison.ipynb](finetune_vs_baseline_comparison.ipynb) — compares fine-tuned vs. baseline T1 metrics from `kaggle_output/`
+
+Training notebooks are **environment-aware**: a config cell sets `ON_KAGGLE = Path("/kaggle").exists()` and derives `DATA_DIR`/`WORK_DIR` from it. Reads go through `DATA_DIR`, writes through `WORK_DIR` (`/kaggle/working` on Kaggle — the only writable/persisted dir). Keep this pattern when editing.
+
+## Kaggle Workflow (remote GPU)
+
+Batch remote execution — push notebook, Kaggle runs it top-to-bottom, pull outputs. No interactive remote session. Full details: [docs/kaggle/pipeline_state_and_kaggle_interaction.md](docs/kaggle/pipeline_state_and_kaggle_interaction.md) and [kaggle/README.md](kaggle/README.md).
+
+```powershell
+.\kaggle\run.ps1 -Wait     # push kernel, poll, download outputs to kaggle_output/
+.\kaggle\stage_data.ps1    # re-stage CSVs, then: python -m kaggle datasets version ...
+```
+
+Key facts:
+- Always invoke the CLI as **`python -m kaggle`** (the `kaggle.exe` shim is blocked by Windows Application Control on this machine).
+- `kaggle/kernel-metadata.json` → `code_file` selects **which notebook** gets pushed; edit it to switch between the fine-tune and baseline runs.
+- Data mounts read-only at `/kaggle/input/cuad-master-clauses-cleaned`; `--dir-mode zip` flattens the `CUAD_v1/` subfolder, so notebooks have a CSV fallback search.
+- Local edits are invisible until pushed; save the notebook file before `run.ps1`.
+- Use accelerator **GPU T4×2** and the `HF_TOKEN` kernel secret (set on kaggle.com).
+- Outputs land in `kaggle_output/` (git-ignored): adapter (`llama-3.1-8B-cuad-task1/`), `eval_metrics.json`, `eval_report.txt`, `train_metrics.json`, logs, generated JSONL.
 
 ## Data Format & Schema
 
-`master_clauses.csv` column pairs: `[Category]` (clause text context) + `[Category]-Answer` (ground truth).
+`master_clauses.csv` column pairs: `[Category]` (clause text context) + `[Category]-Answer` (ground truth). Answer = `"No"` → clause absent (T1 negative); answer = text/date/name → clause present (T1 positive / T2 value).
 
-- Answer = `"No"` → clause absent (T1 negative)
-- Answer = text/date/name → clause present or entity extracted (T1 positive / T2 output)
-
-Training JSONL schema:
+Training JSONL schemas (both include a `category` field for per-category eval):
 ```json
-{"instruction": "Extract the [Category] from the contract text. Return in JSON format.",
- "input": "{\"[Category]\": \"<clause text>\"}",
- "output": "{\"[Category]\": \"<answer>\"}"}
+// T1
+{"instruction": "Is the following contract text a \"[Category]\" clause? Answer strictly \"Yes\" or \"No\".",
+ "category": "[Category]", "input": "<clause text>", "output": "Yes|No"}
+// T2
+{"instruction": "Extract the \"[Category]\" from the contract text below. Return the result as a JSON object with the single key \"[Category]\". If multiple values exist, return them as a list of strings. If the value is not present, use null.",
+ "category": "[Category]", "input": "<clause text>", "output": "{\"[Category]\": \"<value>\"}"}
 ```
 
-Prompt template used during training:
+Prompt template used during training (completion = `output`):
 ```
 ### Instruction:
 {instruction}
@@ -60,22 +94,31 @@ Prompt template used during training:
 {input}
 
 ### Response:
-{output}
 ```
 
 ## QLoRA Configuration
 
-Target model: `meta-llama/Meta-Llama-3-8B` (or `mistralai/Mistral-7B-v0.1`)
+Target model: `meta-llama/Meta-Llama-3.1-8B` (production runs); `meta-llama/Llama-3.2-1B` is the smoke-test option in the same notebooks.
 
-Key settings in `llm_fine_tuning_LORA.ipynb`:
+Key settings (same in T1 v2 and T2 notebooks):
 - 4-bit NF4 quantization via `BitsAndBytesConfig`
-- LoRA rank `r=16`, `lora_alpha=16`, targets `["q_proj", "v_proj"]`
-- `max_seq_length=2048`, optimizer `paged_adamw_32bit`
-- Trained model saved to `./llama-3-cuad-finetune`
+- LoRA rank `r=16`, `lora_alpha=16`, targets `["q_proj", "k_proj", "v_proj", "o_proj"]`
+- Optimizer `paged_adamw_32bit`
+- Adapter saved under `WORK_DIR` (e.g. `llama-3.1-8B-cuad-task1/`)
+
+## Documentation
+
+`docs/` is organized by topic — check the relevant subfolder before reworking a pipeline:
+- `docs/task_1/` — T1 design, LoRA application, hard-negatives plan
+- `docs/task_2/` — T2 logic, entity-extraction plan, notebook cell guide
+- `docs/kaggle/` — pipeline state (single source of truth for what works), remote-GPU design, script walkthroughs
+- `docs/data_processing/` — CUAD data roles, contract→clause mapping, table→examples
+- `docs/MODEL_SELECTION.md`, `docs/GPU_SCALING_OPTIONS.md`, `docs/llm_finetuning_parameters.md`
 
 ## Important Data Decisions
 
 - **Train/val split is contract-level** (not clause-level) at 85/15 to prevent leakage — a contract's clauses must not appear in both sets
+- T1/T2 use disjoint category sets: the 9 T2 entity categories (plus `Filename`) are excluded from T1's Yes/No categories
 - `CUAD_v1.json` is SQuAD extractive format; it is **not used for training** generative models
-- `full_contracts_pdf/` and `full_contracts_txt/` are intentionally omitted — raw contracts exceed context windows and the CSV already contains extracted clauses
-- Class imbalance is significant for T1 (rare risk clauses <10% frequency); training prompts must include "No" examples explicitly
+- `full_contract_pdf/` and `full_contract_txt/` are intentionally unused — raw contracts exceed context windows and the CSV already contains extracted clauses
+- Class imbalance is significant for T1 (rare risk clauses <10% frequency); negatives use real non-related clause text (not placeholders) so the model sees hard "No" examples
