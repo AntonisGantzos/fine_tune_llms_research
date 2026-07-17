@@ -8,3 +8,7 @@
 # tracked metadata (kaggle/kernel-metadata.json, kaggle/dataset_payload/dataset-metadata.json).
 /kaggle/dataset_payload/CUAD_v1/
 /kaggle_output/
+/kaggle_output_task1_fine_tuned
+/kaggle_output_task1_baseline
+/kaggle_output_task2_fine_tuned
+/kaggle_output_task2_baseline
