@@ -124,3 +124,26 @@ Key settings (same in T1 v2 and T2 notebooks):
 - `CUAD_v1.json` is SQuAD extractive format; it is **not used for training** generative models
 - `full_contract_pdf/` and `full_contract_txt/` are intentionally unused — raw contracts exceed context windows and the CSV already contains extracted clauses
 - Class imbalance is significant for T1 (rare risk clauses <10% frequency); negatives use real non-related clause text (not placeholders) so the model sees hard "No" examples
+
+## Working Principles
+
+Guidance for how to write code in this repo. The governing rule: **build the simplest thing that works, add complexity only when reality forces it.**
+
+- **KISS / YAGNI / no premature optimization.** Solve today's requirement the simplest way. Don't add abstractions, config, or speed hacks for imagined future needs. Before writing: *is there a shorter, clearer way, and is this needed now?*
+- **Question every dependency.** A new package is complexity forever — don't pull one in for what a small function solves. `torch` here is CPU-only; heavy model code only runs on Kaggle.
+- **Plan before large changes; surface unknowns first.** For anything non-trivial, lay out the approach and ask before guessing (which notebook/task, which categories, edge cases). Work in small, reviewable increments.
+- **Prove success with evidence, don't assert it.** Report the exact command run and its output. Never claim a training run or eval "works" without the actual result — real GPU runs happen on Kaggle (`kaggle_output/` metrics), not locally. If a step was skipped or failed, say so plainly.
+- **Preserve the environment-aware pattern.** Keep `ON_KAGGLE` / `DATA_DIR` / `WORK_DIR` derivation intact; reads via `DATA_DIR`, writes via `WORK_DIR`. Don't hardcode paths.
+
+### Documentation & style
+- **Self-documenting code first.** Clear names over comments. Comments explain *why* (the constraint, the non-obvious decision), not *what*. No commented-out zombie code.
+- **Docstrings on helper functions/scripts** — inputs, outputs, gotchas. Update docs in `docs/` and this file in the *same* change as the code they describe; stale docs are worse than none.
+
+### ML reproducibility (this is research code)
+- **Version code + config together.** Each config change is a distinct experiment.
+- **Log inputs to files, not just the terminal** — hyperparameters, chosen settings, metrics, data version. Terminal-only output is lost. The notebooks already write `eval_metrics.json` / `train_metrics.json` / `eval_report.txt`; keep that habit.
+- **Record seeds; pin the environment** (`requirements.txt`). Don't overwrite prior run outputs when a fresh comparison matters.
+- **Build and document a fair baseline** before claiming a fine-tuning gain (cf. the T1 baseline notebook) so improvements reflect the model, not a pipeline difference.
+
+### Logging & formatting
+- `print` is fine for notebook/prototype work; use log **levels** deliberately if a script grows. Never log secrets (HF token). Prefer an auto-formatter over manual style debates.
