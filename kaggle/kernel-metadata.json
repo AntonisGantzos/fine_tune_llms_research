@@ -1,14 +1,14 @@
 {
-  "id": "antonisgantzos/cuad-task2-no-finetune",
-  "title": "CUAD Task2 No Finetune",
-  "code_file": "../llm_fine_tuning_LORA_task2.ipynb",
+  "id": "antonisgantzos/cuad-task3-finetune",
+  "title": "CUAD Task3 Finetune",
+  "code_file": "../llm_fine_tuning_LORA_task3.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": true,
   "enable_gpu": true,
   "machine_shape": "NvidiaTeslaT4",
   "enable_internet": true,
-  "dataset_sources": ["antonisgantzos/cuad-master-clauses-cleaned"],
+  "dataset_sources": ["antonisgantzos/ledgar-lexglue", "antonisgantzos/hf-token"],
   "competition_sources": [],
   "kernel_sources": []
 }
