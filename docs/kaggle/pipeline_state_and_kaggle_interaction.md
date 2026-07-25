@@ -1,12 +1,19 @@
 # Pipeline State & Kaggle Interaction — Task 1 (CUAD Risk-Clause Recognition)
 
 **Notebook:** [`llm_fine_tuning_LORA_task1_v2.ipynb`](../../llm_fine_tuning_LORA_task1_v2.ipynb)
-**Companion design doc:** [option_a_kaggle_remote_gpu.md](option_a_kaggle_remote_gpu.md)
+**Operational guide:** [kaggle_connection_guide.md](kaggle_connection_guide.md)
 **Last verified:** 2026-06-13 — **full end-to-end run succeeded on Kaggle (T4×2).**
 
 This document describes **exactly where the pipeline stands today**, how it interacts with Kaggle, and
 the concrete differences between running it **locally** versus **on Kaggle's GPU**. It is the
 single source of truth for "what works, what doesn't, and why."
+
+> **Note (setup has since evolved).** For the current operational steps, read
+> **[kaggle_connection_guide.md](kaggle_connection_guide.md)** — it supersedes the procedure here. Two
+> things changed after this record was written: (1) the **HF token is now delivered as a private
+> `hf-token` dataset**, not a web Secret (§6/§7-A below describe the older Secret approach; both work,
+> the dataset is preferred and fully headless); (2) the `run.ps1` username-guard bug noted in §7 is
+> **fixed** — `run.ps1` works and also verifies every declared dataset actually attaches.
 
 > **Status: GREEN.** After attaching the `HF_TOKEN` secret and selecting the **GPU T4×2** accelerator,
 > the notebook trained end-to-end on Kaggle: final training loss **0.3035**, validation accuracy
@@ -191,13 +198,13 @@ So the contract is: **select T4×2 + the notebook masks GPU 1 → no DataParalle
 The successful run used exactly this and trained cleanly. (Note: `kernel-metadata.json` only carries
 `enable_gpu: true`; the *specific* T4×2 machine type is chosen in the notebook's accelerator setting.)
 
-### Still outstanding — `run.ps1` placeholder guard bug (cosmetic, not blocking)
+### `run.ps1` placeholder guard bug — *FIXED*
 
-[`kaggle/run.ps1`](../../kaggle/run.ps1) throws if the kernel id starts with `antonisgantzos/` — but that
-**is** the real username, so `.\kaggle\run.ps1` aborts immediately. (The guard was meant to catch the
-literal `YOUR_KAGGLE_USERNAME` placeholder.) Runs so far were pushed manually with
-`python -m kaggle kernels push -p kaggle`. *Fix:* change the guard to test for the literal placeholder
-string, not the username.
+The guard in [`kaggle/run.ps1`](../../kaggle/run.ps1) now correctly tests for the literal
+`YOUR_KAGGLE_USERNAME` placeholder (not the real `antonisgantzos/` username), so `.\kaggle\run.ps1`
+runs cleanly. It additionally pulls the pushed kernel's metadata back and **aborts loudly if any
+declared `dataset_source` failed to attach** (the CLI otherwise silently drops a missing dataset and
+the run dies on the first `/kaggle/input/...` read).
 
 ---
 

@@ -16,7 +16,7 @@ Legal documents require a degree of domain comprehension that general LLMs often
 | :--- | :--- | :--- | :--- |
 | **T1 – Risk Clause Recognition** | Binary Yes/No: "Is this text a *[category]* clause?" across all CUAD risk-clause categories | CUAD | ✅ **Done** — trained, evaluated, and compared against the un-fine-tuned baseline |
 | **T2 – Structured Entity Extraction** | Extract 9 entity types (Parties, Agreement/Effective/Expiration Date, Governing Law, Renewal Term, etc.) as strict single-key JSON | CUAD | 🔄 **In progress** — pipeline notebook and train/validation JSONL ready; training run pending |
-| **T3 – Jurisdiction & Governing Law Identification** | Classify the provision type / governing law of a contract clause | LEDGAR | ⬜ Not started |
+| **T3 – Jurisdiction & Governing Law Identification** | Classify the provision type / governing law of a contract clause | LEDGAR | 🔄 **In progress** — pipeline notebook + LEDGAR data staged to Kaggle; training run pending |
 
 ### T1 Results (Llama-3.1-8B, 2,208 validation examples)
 
@@ -34,11 +34,13 @@ Fine-tuning details and per-class breakdowns: [finetune_vs_baseline_comparison.i
 ├── CUAD_dataset_exploration.ipynb        # EDA: class imbalance, context lengths, format preview
 ├── llm_fine_tuning_LORA_task1_v2.ipynb   # T1: CSV → JSONL → QLoRA fine-tune → eval
 ├── llm_fine_tuning_LORA_task2.ipynb      # T2: same pipeline for entity extraction
+├── llm_fine_tuning_LORA_task3.ipynb      # T3: LEDGAR provision classification (current Kaggle target)
 ├── llama_3.1_task_1_no_fine_tune.ipynb   # T1 baseline: base model on the same validation set
 ├── kaggle_results_visualization.ipynb    # Plots for a single training-run directory
 ├── finetune_vs_baseline_comparison.ipynb # T1 fine-tuned vs. baseline comparison
 ├── cuad/                                 # Generated train/validation JSONL (T1 + T2)
 ├── data/CUAD_v1/                         # Raw CUAD data (git-ignored; see scripts/download_cuad.py)
+├── data/LEDGAR/                          # Raw LEDGAR splits + labels.json (T3; git-ignored)
 ├── kaggle/                               # Remote-GPU runner: push kernel, pull outputs
 ├── kaggle_output/                        # Downloaded run artifacts: adapter, metrics, logs (git-ignored)
 ├── scripts/                              # download_cuad.py, preprocess_values_cuad.py, sampling
@@ -53,7 +55,7 @@ The local machine has no GPU, so training runs on **Kaggle's free T4×2** as bat
 2. `.\kaggle\run.ps1 -Wait` — pushes the notebook, Kaggle runs it top-to-bottom, and the trained adapter + metrics download to `kaggle_output/`.
 3. Analyze results locally with the visualization/comparison notebooks.
 
-Notebooks are environment-aware (`ON_KAGGLE` flag) so the same file runs in both places. Setup and details: [kaggle/README.md](kaggle/README.md) and [docs/kaggle/pipeline_state_and_kaggle_interaction.md](docs/kaggle/pipeline_state_and_kaggle_interaction.md).
+Notebooks are environment-aware (`ON_KAGGLE` flag) so the same file runs in both places. Data and the HF token are supplied as read-only Kaggle **datasets** (the token is a private dataset, not a web Secret). Full step-by-step setup: **[docs/kaggle/kaggle_connection_guide.md](docs/kaggle/kaggle_connection_guide.md)** and [kaggle/README.md](kaggle/README.md).
 
 ## Datasets
 
@@ -62,7 +64,7 @@ Notebooks are environment-aware (`ON_KAGGLE` flag) so the same file runs in both
 *   **How it is used here:** each `[Category]` / `[Category]-Answer` column pair becomes instruction-tuning examples. A cleaned CSV (`master_clauses_cleaned.csv`) replaces empty-negative placeholders with real non-related clause text so T1 sees hard "No" examples. The train/validation split is **contract-level (85/15)** to prevent leakage.
 *   **Reference:** *CUAD: An Expert-Annotated NLP Dataset for Legal Contract Review* (NeurIPS 2021) by The Atticus Project.
 
-### 2. LEDGAR (Labeled EDGAR) — Task 3 (planned)
+### 2. LEDGAR (Labeled EDGAR) — Task 3 (in progress)
 *   **Description:** A large-scale multi-label corpus of ~850,000 contract provisions scraped from SEC filings, labeled with over 12,000 categories.
 *   **Reference:** *LEDGAR: A Large-Scale Multi-label Corpus for Text Classification of Legal Provisions in Contracts* (LREC 2020) by Tuggener et al.
 
@@ -87,4 +89,4 @@ python scripts\download_cuad.py # fetch CUAD into DATA_DIR (set DATA_DIR=data/CU
 jupyter notebook
 ```
 
-A Hugging Face token with access to the gated Llama models is required (`.env` locally, `HF_TOKEN` secret on Kaggle). Development conventions live in [CLAUDE.md](CLAUDE.md).
+A Hugging Face token with access to the gated Llama models is required — from `.env` locally, and on Kaggle from the private `hf-token` dataset (see [docs/kaggle/kaggle_connection_guide.md](docs/kaggle/kaggle_connection_guide.md)). Development conventions live in [CLAUDE.md](CLAUDE.md).

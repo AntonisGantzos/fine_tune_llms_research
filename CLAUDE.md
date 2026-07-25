@@ -9,7 +9,7 @@ Research project for fine-tuning LLMs on legal contract review tasks using QLoRA
 **Three tasks:**
 - **T1 – Risk Clause Recognition:** Binary Yes/No clause identification from CUAD (all clause categories not used by T2). **Implemented and evaluated** — fine-tuned vs. baseline comparison done.
 - **T2 – Structured Entity Extraction:** Extract dates/names/terms as valid JSON (9 categories: Document Name, Parties, Agreement Date, Effective Date, Expiration Date, Renewal Term, Notice Period To Terminate Renewal, Governing Law, Warranty Duration) from CUAD. **In progress** — notebook and JSONL generation exist; training run pending.
-- **T3 – Jurisdiction Identification:** Provision classification from LEDGAR. **Not yet implemented.**
+- **T3 – Jurisdiction Identification:** Provision classification from LEDGAR. **In progress** — notebook [llm_fine_tuning_LORA_task3.ipynb](llm_fine_tuning_LORA_task3.ipynb) exists, LEDGAR data staged as a Kaggle dataset, and `kaggle/kernel-metadata.json` currently targets this notebook; training run pending.
 
 ## Environment Setup
 
@@ -48,6 +48,7 @@ Helper scripts in `scripts/`: `download_cuad.py`, `preprocess_values_cuad.py` (p
 - [CUAD_dataset_exploration.ipynb](CUAD_dataset_exploration.ipynb) — EDA: class imbalance, context lengths, instruction-format preview
 - [llm_fine_tuning_LORA_task1_v2.ipynb](llm_fine_tuning_LORA_task1_v2.ipynb) — **T1 training pipeline**: cleaned CSV → JSONL → QLoRA fine-tune via `SFTTrainer` → validation eval (`eval_metrics.json`, `eval_report.txt`)
 - [llm_fine_tuning_LORA_task2.ipynb](llm_fine_tuning_LORA_task2.ipynb) — **T2 training pipeline**, same structure as T1 v2 (33 cells, mirrors it deliberately)
+- [llm_fine_tuning_LORA_task3.ipynb](llm_fine_tuning_LORA_task3.ipynb) — **T3 training pipeline** (LEDGAR provision classification); builds JSONL on Kaggle from the staged LEDGAR splits. Current `kernel-metadata.json` target.
 - [llama_3.1_task_1_no_fine_tune.ipynb](llama_3.1_task_1_no_fine_tune.ipynb) — T1 **baseline**: evaluates the un-fine-tuned base model on the same validation set; writes to `no_finetune_baseline/`
 - [kaggle_results_visualization.ipynb](kaggle_results_visualization.ipynb) — visualizes one run directory (point `RESULTS_DIR` at e.g. `kaggle_output/`)
 - [finetune_vs_baseline_comparison.ipynb](finetune_vs_baseline_comparison.ipynb) — compares fine-tuned vs. baseline T1 metrics from `kaggle_output/`
@@ -56,20 +57,21 @@ Training notebooks are **environment-aware**: a config cell sets `ON_KAGGLE = Pa
 
 ## Kaggle Workflow (remote GPU)
 
-Batch remote execution — push notebook, Kaggle runs it top-to-bottom, pull outputs. No interactive remote session. Full details: [docs/kaggle/pipeline_state_and_kaggle_interaction.md](docs/kaggle/pipeline_state_and_kaggle_interaction.md) and [kaggle/README.md](kaggle/README.md).
+Batch remote execution — push notebook, Kaggle runs it top-to-bottom, pull outputs. No interactive remote session. **Step-by-step guide: [docs/kaggle/kaggle_connection_guide.md](docs/kaggle/kaggle_connection_guide.md)** and [kaggle/README.md](kaggle/README.md); T1 run record: [docs/kaggle/pipeline_state_and_kaggle_interaction.md](docs/kaggle/pipeline_state_and_kaggle_interaction.md).
 
 ```powershell
-.\kaggle\run.ps1 -Wait     # push kernel, poll, download outputs to kaggle_output/
-.\kaggle\stage_data.ps1    # re-stage CSVs, then: python -m kaggle datasets version ...
+.\kaggle\run.ps1 -Wait     # push kernel, verify datasets attach, poll, download outputs to kaggle_output/
+.\kaggle\stage_data.ps1    # stage LEDGAR (T3), then: python -m kaggle datasets version -p dataset_payload_ledgar -m "..."
 ```
 
 Key facts:
 - Always invoke the CLI as **`python -m kaggle`** (the `kaggle.exe` shim is blocked by Windows Application Control on this machine).
-- `kaggle/kernel-metadata.json` → `code_file` selects **which notebook** gets pushed; edit it to switch between the fine-tune and baseline runs.
-- Data mounts read-only at `/kaggle/input/cuad-master-clauses-cleaned`; `--dir-mode zip` flattens the `CUAD_v1/` subfolder, so notebooks have a CSV fallback search.
+- `kaggle/kernel-metadata.json` → `code_file` selects **which notebook** gets pushed (currently the T3 notebook); edit it to switch tasks/runs. Keep the same `id` to overwrite that kernel, use a new `id` for a separate kernel.
+- **Three datasets**, mounted read-only at `/kaggle/input/<slug>`: `cuad-master-clauses-cleaned` (T1/T2, uploaded with `--dir-mode zip` → subfolder flattened, so notebooks have a CSV fallback search), `ledgar-lexglue` (T3, staged flat, **no** `--dir-mode zip`), and the private `hf-token`.
+- **HF token is delivered as the private `hf-token` dataset, not a web Secret** — the API can't attach secrets, and clicking *Save Version* in the web editor silently empties `dataset_sources`. `get_hf_token()` reads `/kaggle/input/*/hf_token.txt`, falling back to the Secrets vault, then local `.env`. Never save from the web editor; drive runs from the CLI.
 - Local edits are invisible until pushed; save the notebook file before `run.ps1`.
-- Use accelerator **GPU T4×2** and the `HF_TOKEN` kernel secret (set on kaggle.com).
-- Outputs land in `kaggle_output/` (git-ignored): adapter (`llama-3.1-8B-cuad-task1/`), `eval_metrics.json`, `eval_report.txt`, `train_metrics.json`, logs, generated JSONL.
+- Use accelerator **GPU T4×2** (set once per kernel in the notebook's Settings on kaggle.com).
+- Outputs land in `kaggle_output/` (git-ignored): adapter, `eval_metrics.json`, `eval_report.txt`, `train_metrics.json`, logs, generated JSONL.
 
 ## Data Format & Schema
 
@@ -111,7 +113,7 @@ Key settings (same in T1 v2 and T2 notebooks):
 `docs/` is organized by topic — check the relevant subfolder before reworking a pipeline:
 - `docs/task_1/` — T1 design, LoRA application, hard-negatives plan
 - `docs/task_2/` — T2 logic, entity-extraction plan, notebook cell guide
-- `docs/kaggle/` — pipeline state (single source of truth for what works), remote-GPU design, script walkthroughs
+- `docs/kaggle/` — **`kaggle_connection_guide.md`** (how the connection works + step-by-step run guide) and `pipeline_state_and_kaggle_interaction.md` (T1 end-to-end run record)
 - `docs/data_processing/` — CUAD data roles, contract→clause mapping, table→examples
 - `docs/MODEL_SELECTION.md`, `docs/GPU_SCALING_OPTIONS.md`, `docs/llm_finetuning_parameters.md`
 
