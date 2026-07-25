@@ -7,6 +7,15 @@
 # Kaggle: ignore the copied data payload and downloaded outputs, but keep the
 # tracked metadata (kaggle/kernel-metadata.json, kaggle/dataset_payload/dataset-metadata.json).
 /kaggle/dataset_payload/CUAD_v1/
+# NEVER commit the HF token — only its dataset-metadata.json is tracked.
+/kaggle/dataset_payload_hf_token/hf_token.txt
+# Staged LEDGAR CSVs (large; re-created by stage_data.ps1).
+/kaggle/dataset_payload_ledgar/*.csv
+/kaggle/dataset_payload_ledgar/labels.json
+# Jupyter checkpoints and Kaggle CLI scratch/verification dirs (not source).
+.ipynb_checkpoints/
+/_kchk/
+/_dscheck/
 /kaggle_output/
 /kaggle_output_task1_fine_tuned
 /kaggle_output_task1_baseline
