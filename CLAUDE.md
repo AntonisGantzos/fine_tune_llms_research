@@ -108,6 +108,15 @@ Key settings (same in T1 v2 and T2 notebooks):
 - Optimizer `paged_adamw_32bit`
 - Adapter saved under `WORK_DIR` (e.g. `llama-3.1-8B-cuad-task1/`)
 
+**T3 deviates deliberately — do not "harmonize" it back to T1/T2** (see the run history in `docs/task_3/TASK3_NEXT_STEPS.md`):
+- **`fp16`, not `bf16`.** Kaggle's T4 is Turing (compute capability 7.5) and has no bf16 tensor cores; `torch.cuda.is_bf16_supported()` returns `True` anyway, so bf16 runs silently at fp32 speed (~8× slower). This is what made a T3 run miss Kaggle's 12 h wall. A pre-flight check now hard-fails bf16 on any pre-Ampere GPU.
+- **`max_length=1024`, enforced by trimming the provision text** in `build_prompt()` — never by truncating the assembled prompt. The 100-label instruction is 331 tokens of every prompt and the label sits at the *tail*, so sequence truncation deletes the training signal → NaN loss. Trimming the input keeps the label and bounds peak VRAM, which is dominated by the `tokens × 128,256`-vocab logits tensor (materialized fp16 *and* fp32 by the loss) — an OOM killed a run at `max_length=2048` with batch 2.
+- **`embed_tokens` / `lm_head` are recast to fp16 after trainer init** (cell 8b). `SFTTrainer` runs peft's `prepare_model_for_kbit_training`, which upcasts *every* fp16 param to fp32 — 2.1 GB each for those two frozen 525M-param modules, plus ~1 GB of autocast cast-cache. LayerNorms stay fp32 (stability, ~1 MB).
+- **Pre-flight check 9 measures it**: one real forward+backward on the worst-case batch (`group_by_length` puts the longest example in batch 0), reporting peak GB plus the fp32 logits copy accelerate adds under fp16. Failures surface in pre-flight, not four minutes into training.
+- **batch 2 × grad-accum 4** (T1/T2: 1 × 8) plus `group_by_length=True` — same effective batch of 8, but bitsandbytes' per-weight dequantization cost is amortized over 2 rows instead of 1.
+- **`TimeBudgetCallback`** stops training at 7 h so the adapter save + eval always run inside Kaggle's 12 h kill; `stopped_on_time_budget` in `train_metrics.json` / `eval_metrics.json` flags a partial epoch.
+- Adapter output: `llama-3.1-8B-ledgar-task3/`.
+
 ## Documentation
 
 `docs/` is organized by topic — check the relevant subfolder before reworking a pipeline:
