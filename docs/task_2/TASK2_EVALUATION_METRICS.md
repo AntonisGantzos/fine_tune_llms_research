@@ -8,6 +8,49 @@ cases A–D) see [TASK2_LOGIC.md](TASK2_LOGIC.md); this doc is the metrics deep-
 
 ---
 
+## 0. What is actually being scored
+
+**Training data.** CUAD `master_clauses_cleaned.csv` → `cuad/train/cuad_task2_train.jsonl` +
+`cuad/validation/cuad_task2_validation.jsonl`, one example per (contract, category) pair across the
+**9 entity categories**: Document Name, Parties, Agreement Date, Effective Date, Expiration Date,
+Renewal Term, Notice Period To Terminate Renewal, Governing Law, Warranty Duration. Split is
+**contract-level 85/15** — no clause from a validation contract was seen in training. The fine-tuned
+run trained on **2,454 examples** (307 optimizer steps × effective batch 8, one epoch) and is scored
+on **631 validation examples**.
+
+**Input the model sees at eval time** — byte-identical to the training prompt, response left empty:
+
+```
+### Instruction:
+Extract the "Governing Law" from the contract text below. Return the result as a JSON object
+with the single key "Governing Law". If multiple values exist, return them as a list of strings.
+If the value is not present, use null.
+
+### Input:
+<clause text>
+
+### Response:
+```
+
+**Output it is expected to produce** — the completion it was fine-tuned on: one JSON object, no
+markdown fence, no prose, whose only key is the requested category:
+
+```json
+{"Governing Law": "Nevada"}
+```
+
+with a list value when several entities exist (`{"Parties": ["Acme Inc.", "Beta LLC"]}`) and
+`null` when the entity is absent (`{"Expiration Date": null}`). Teaching that output *contract* is
+most of what fine-tuning buys here — the base model reliably wraps its answer in ` ```json ` fences
+or explanatory text, which is precisely what metric 1 below counts.
+
+**How the raw completion becomes a prediction.** Greedy generation, `max_new_tokens=128`, then
+`json.loads` on the raw string with a strict key check. Unlike Task 1's lenient `Yes`/`No` coercion,
+nothing here is repaired: a fenced or chatty completion fails parsing and scores 0 on all three
+metrics.
+
+---
+
 ## 1. Why Task 1's metrics don't transfer
 
 Task 1 is binary classification: the completion is literally `Yes` or `No`, so

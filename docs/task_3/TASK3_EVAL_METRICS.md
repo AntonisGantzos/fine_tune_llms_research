@@ -8,6 +8,35 @@ The model is scored on the 1,945-example validation set with greedy generation. 
 
 ---
 
+## What is actually being scored
+
+**Training data.** LEDGAR (LexGLUE), staged as `ledgar-lexglue` and built into JSONL on Kaggle. The raw splits (60,000 train / 10,000 validation) are **stratified down to ~100 examples per label** for train and ~20 for validation, because LEDGAR is 137× imbalanced and the full set would drown the model in *Governing Laws*. Result: **9,801 train / 1,945 validation** examples, all 100 labels present in train, 99 in validation (*Books* has too few rows to survive the split). Unlike Tasks 1 and 2, there is no contract-level split to construct — LEDGAR ships its own train/validation/test splits and the test set is held out entirely.
+
+**Input the model sees at eval time** — byte-identical to the training prompt (same `build_prompt()`, same provision trimming to 670 tokens), response left empty:
+
+```
+### Instruction:
+Classify the following contract provision. Answer with exactly one label from this list:
+[Adjustments, Agreements, Amendments, ... , Waivers, Warranties, Withholdings].
+
+### Input:
+<provision text>
+
+### Response:
+```
+
+The 100-label menu is **341 tokens of every single prompt** — the model is not asked to recall the label set from memory, it is asked to pick from a list it is shown each time.
+
+**Output it is expected to produce** — the completion it was fine-tuned on: the label string verbatim and nothing else, e.g.
+
+```
+Governing Laws
+```
+
+**How the raw completion becomes a prediction.** Greedy generation, `max_new_tokens` = longest label + 2, then: take the **first line only**, strip, lowercase, and look it up in the 100-label table. A hit maps back to the canonical label; a miss becomes the sentinel `__INVALID__`, which is *not* in `LABELS` and therefore counts as a **wrong answer** in every metric below — never as a free pass. That lookup is what metric 1 measures.
+
+---
+
 ## The metrics, in the order they matter
 
 ### 1. Valid-label rate

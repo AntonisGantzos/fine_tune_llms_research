@@ -2,6 +2,28 @@
 
 Documents the metrics computed in [llm_fine_tuning_LORA_task1_v2.ipynb](../../llm_fine_tuning_LORA_task1_v2.ipynb) (Step 6b, "Evaluate on validation").
 
+## What is actually being scored
+
+**Training data.** CUAD `master_clauses_cleaned.csv` → `cuad/train/cuad_train.jsonl` + `cuad/validation/cuad_validation.jsonl`, one example per (contract, category) pair across the **32 Yes/No categories** (the 9 Task 2 entity categories and `Filename` are excluded — the two tasks use disjoint category sets). The split is **contract-level 85/15**, so no clause from a validation contract appears in training. Every `No` example uses a **hard negative** — a real clause borrowed from a *different* category of the *same* contract — so `Yes` and `No` inputs are both genuine legal text and the model cannot cheat on "real text vs. placeholder".
+
+The fine-tuned Kaggle run trained on ≈6.1k examples (764 optimizer steps × effective batch 8, one epoch) and is scored on **2,208 validation examples**.
+
+**Input the model sees at eval time** — byte-identical to the training prompt, with the response left empty:
+
+```
+### Instruction:
+Is the following contract text a "Cap On Liability" clause? Answer strictly "Yes" or "No".
+
+### Input:
+<clause text>
+
+### Response:
+```
+
+**Output it is expected to produce** — the completion it was fine-tuned on: the single token-string `Yes` or `No`, nothing else. This is the *only* thing fine-tuning teaches it to emit here; the base model tends to answer in a sentence, which is the main behavioural difference the baseline comparison exposes.
+
+**How the raw completion becomes a prediction.** Greedy generation, `max_new_tokens=3`, then `"Yes" if "yes" in completion.lower() else "No"`. Note the consequence: this parse is **lenient** — it never fails, so Task 1 has no "format validity" metric. A rambling completion is silently coerced into a class rather than counted as malformed (Tasks 2 and 3 do report a validity rate, because their output formats can genuinely break). Every metric below is computed on those coerced `Yes`/`No` labels versus the gold `output` field.
+
 ## The task in one line
 
 For each contract clause, the model answers **`Yes`** (this *is* a "[Category]" clause) or **`No`** (it is not). So every prediction is one of:
