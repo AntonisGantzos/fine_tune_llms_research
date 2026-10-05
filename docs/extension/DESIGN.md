@@ -35,6 +35,37 @@ format adherence vs domain knowledge.
 Known asymmetry: the original Llama T1/T2 runs trained and evaluated in bf16; the harness
 evaluates every arm, including the re-scored Llama adapters, in fp16 (see Phase 8).
 
+## Harness (`scripts/legal_model_extension.py`)
+
+- Prompts and scoring come only from `scripts/task{1,2,3}_metrics.py`, extracted from the
+  notebooks. `scripts/test_extension_scoring.py` checks them on CPU; for T1 it rebuilds
+  per-example labels from both saved Kaggle confusion matrices and reproduces both
+  `eval_metrics.json` files exactly (accuracy 0.9615 fine-tuned, 0.5611 baseline).
+- **Sequence-length cap: input trimming in every task.** The T3 rule (trim the input text so
+  prompt + completion fit `max_seq_len`; never truncate the assembled sequence) is applied to all
+  tasks. The T1/T2 notebooks truncated the assembled sequence instead. Measured on CPU with the
+  real tokenizers at `max_seq_len=1024` for T1:
+
+  | Tokenizer | Input budget | Train trimmed | Val trimmed |
+  |---|---:|---:|---:|
+  | Llama-3.1 | 977 | 50 / 6,106 | 6 / 2,208 |
+  | Mistral-7B = Saul-7B (same tokenizer) | 969 | 73 / 6,106 | 8 / 2,208 |
+
+  So the published Llama T1 run trained on 50 examples whose label was truncated away, and
+  scored 6 validation prompts that had lost `### Response:`. The harness's Llama T1 numbers can
+  therefore differ from the notebook's on at most those 6 validation examples (≤ 0.27 pp).
+  Prompts that need no trimming are byte-identical to the notebooks'.
+- Tokenizers: none of the three ships a pad token; all use `pad_token = eos_token`, exactly as the
+  Llama notebooks did. Mistral and Saul share a tokenizer, so the headline comparison has no
+  tokenization confound.
+- Eval batch size follows the notebooks: 1 for T1/T2 (one prompt per `generate()`), 8 for T3.
+- Mid-run checkpoints are disabled (`save_strategy="no"`); only the final adapter is saved. This
+  does not change training.
+- T1 adds a **strict-validity** diagnostic (first line exactly Yes/No). Accuracy keeps the
+  notebooks' lenient rule ("yes" anywhere → Yes, else No) so published numbers reproduce.
+- Timing reference: Llama T1 QLoRA took 30,995 s (8.6 h) in **bf16** on the T4 — over the 7 h
+  budget. fp16 should be several times faster; the first Phase 9 run measures it.
+
 ## Canonical data (SHA-256)
 
 Hashes are of the **LF-normalised** bytes: what git stores and what Kaggle generated.

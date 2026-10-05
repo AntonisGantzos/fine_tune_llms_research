@@ -48,28 +48,35 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 
 ## Phase 1 — Write the shared harness
 
-- [ ] Extract T1 scoring (`predict` answer parsing + accuracy / classification report / confusion matrix)
+- [x] Extract T1 scoring (`predict` answer parsing + accuracy / classification report / confusion matrix)
       from `llm_fine_tuning_LORA_task1_v2.ipynb` into `scripts/task1_metrics.py`.
 - [ ] Extract T2 scoring (`normalize_answer`, `parse_prediction`, `norm`, `token_f1`, `value_f1`)
       from `llm_fine_tuning_LORA_task2.ipynb` into `scripts/task2_metrics.py`.
 - [ ] Extract T3 prompt + scoring (`build_prompt`, `truncate_input`, `predict_labels` parsing, `__INVALID__`
       sentinel, macro/micro F1) from `llm_fine_tuning_LORA_task3.ipynb` into `scripts/task3_metrics.py`.
-- [ ] Write `scripts/legal_model_extension.py` with `run` (modes `baseline`, `finetune`, `adapter`) and `compare`
+- [x] Write `scripts/legal_model_extension.py` with `run` (modes `baseline`, `finetune`, `adapter`) and `compare`
       subcommands, importing only those three modules for prompts and scoring.
-- [ ] Use the notebooks' quantisation exactly: NF4, 4-bit, **no** double quantisation, compute dtype fp16 (T4 has no bf16).
-- [ ] Use the notebooks' training settings exactly (from `train_metrics.json`): 1 epoch, lr 2e-4, weight decay 0.001,
+      (T1 registered; T2/T3 join the `TASKS` table when their scorers are extracted.)
+- [x] Use the notebooks' quantisation exactly: NF4, 4-bit, **no** double quantisation, compute dtype fp16 (T4 has no bf16).
+- [x] Use the notebooks' training settings exactly (from `train_metrics.json`): 1 epoch, lr 2e-4, weight decay 0.001,
       `paged_adamw_32bit`, LoRA r=16 / α=16 / dropout 0.05 on q/k/v/o, `completion_only_loss=True`, no packing,
       TRL-default scheduler and warmup.
-- [ ] Use per-task batching as in the notebooks: T1/T2 batch 1 × accum 8; T3 batch 2 × accum 4 with `group_by_length=True`.
-- [ ] Use the notebooks' decoding exactly: greedy, `max_new_tokens` 3 (T1) / 128 (T2) / 16 (T3), max length 1024.
-- [ ] Port the T3 safeguards into every arm: `embed_tokens`/`lm_head` recast to fp16 after trainer init,
+- [x] Use per-task batching as in the notebooks: T1/T2 batch 1 × accum 8; T3 batch 2 × accum 4 with `group_by_length=True`.
+      (T1 done; T2/T3 entries added with their scorers.)
+- [x] Use the notebooks' decoding exactly: greedy, `max_new_tokens` 3 (T1) / 128 (T2) / 16 (T3), max length 1024.
+      (T1 done.)
+- [x] Port the T3 safeguards into every arm: `embed_tokens`/`lm_head` recast to fp16 after trainer init,
       `generate()` inside `torch.autocast("cuda", dtype=float16)`, `TimeBudgetCallback` at 7 h, pre-flight checks 9 and 10.
-- [ ] Set `pad_token = eos_token` when the tokenizer has none (Mistral/Saul ship without one) and log the choice.
-- [ ] Write `eval_metrics.json`, `train_metrics.json` and per-example `predictions.jsonl` (needed for paired tests) per run.
-- [ ] Add a `--limit N` argument that evaluates only the first N validation examples, for smoke tests.
-- [ ] Add a CPU-only unit test `scripts/test_extension_scoring.py` covering valid, invalid and edge-case completions.
-- [ ] Verify locally on CPU that the extracted scorers reproduce the existing `eval_metrics.json` numbers when fed the
+      Input-text trimming is applied to every task too — see `docs/extension/DESIGN.md` (Llama T1: 50 train / 6 val affected).
+- [x] Set `pad_token = eos_token` when the tokenizer has none (Mistral/Saul ship without one) and log the choice.
+- [x] Write `eval_metrics.json`, `train_metrics.json` and per-example `predictions.jsonl` (needed for paired tests) per run.
+- [x] Add a `--limit N` argument that evaluates only the first N validation examples, for smoke tests.
+      (Also `--train_limit N` for the Phase 6 200-example fine-tune smoke test.)
+- [x] Add a CPU-only unit test `scripts/test_extension_scoring.py` covering valid, invalid and edge-case completions.
+      (T1 + `compare`; T2/T3 cases added with their scorers.)
+- [x] Verify locally on CPU that the extracted scorers reproduce the existing `eval_metrics.json` numbers when fed the
       fine-tuned runs' saved predictions (if not saved, check against a hand-built fixture instead).
+      T1: predictions were not saved; fixtures rebuilt from both saved confusion matrices reproduce both files exactly.
 
 ## Phase 2 — Pin the environment
 
