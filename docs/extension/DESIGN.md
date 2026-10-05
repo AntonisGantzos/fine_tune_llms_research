@@ -18,6 +18,12 @@ control that isolates the effect of that pretraining. Llama-3.1-8B is the existi
 
 Each cell is run for each task (T1 risk clauses, T2 entity extraction, T3 LEDGAR labels).
 
+**Current scope (2026-10-06): Saul only, Task 1 first.** The Mistral arms are deferred. Without
+them, Saul results can *rank* Saul against Llama (zero-shot vs zero-shot, QLoRA vs QLoRA) but
+cannot attribute a difference to legal pretraining, because Saul and Llama also differ in base
+model, size, tokenizer and pretraining data. Zero-shot Saul is never compared against fine-tuned
+Llama: that would mostly measure answer-format adherence, not legal knowledge.
+
 **Headline comparison:** Saul-QLoRA vs Mistral-QLoRA (same architecture and tokenizer, so
 any difference comes from the legal pretraining). Zero-shot arms show how much of the gap is
 format adherence vs domain knowledge.
@@ -81,6 +87,12 @@ and disk use. Keep the Hugging Face cache on the container disk (the default), n
   notebooks' lenient rule ("yes" anywhere → Yes, else No) so published numbers reproduce.
 - Timing reference: Llama T1 QLoRA took 30,995 s (8.6 h) in **bf16** on the T4 — over the 7 h
   budget. fp16 should be several times faster; the first Phase 9 run measures it.
+
+## Run log
+
+| Date | Run | Result |
+|---|---|---|
+| 2026-10-05 | `saul_t1_baseline_smoke` (`--limit 40`) | Pipeline OK end to end on a T4. Saul download 2.0 min (29 GB), load 1.8 min, eval 13.8 s for 40 examples (0.35 s/example → about 13 min for all 2,208). Answered "No" to all 40; 100% strictly valid. The 0.95 accuracy is meaningless: the first 40 rows contain only 2 positives (558 / 2,208 overall). Kaggle mounted the datasets at `/kaggle/input/datasets/antonisgantzos/<slug>/` — the runner resolves by file name, so this needed no change. Kaggle stack: `datasets==4.8.5`, torch 2.11.0+cu128, other pins as requested. |
 
 ## Canonical data (SHA-256)
 

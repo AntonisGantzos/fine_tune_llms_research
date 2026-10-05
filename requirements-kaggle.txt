@@ -6,6 +6,6 @@ bitsandbytes==0.46.1
 accelerate==1.7.0
 peft==0.15.2
 trl==0.20.0
-# Unpinned in the notebooks too; the exact version is recorded per run in run_config.json and
-# in the runner's pip_freeze.txt. Pin it from the first smoke run's freeze.
-datasets
+# Unpinned in the Llama notebooks; pinned to what Kaggle resolved on the first extension smoke run
+# (kaggle_output_extension/pip_freeze.txt, 2026-10-05). torch there: 2.11.0+cu128.
+datasets==4.8.5

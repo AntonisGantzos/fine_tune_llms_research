@@ -24,6 +24,11 @@ compare all arms in a 3×2 grid: {Llama, Mistral, Saul} × {zero-shot, QLoRA}.
 - Mistral/Saul use a 32k vocabulary (Llama: 128k), so the logits tensor that drove T3 OOMs is 4× smaller,
   but the instruction token count and provision budget must be recomputed per tokenizer.
 
+### Scope update (2026-10-06)
+
+Saul only, Task 1 first; Mistral arms deferred. Consequence: results rank Saul against Llama but cannot
+attribute differences to legal pretraining (see `docs/extension/DESIGN.md`, "Current scope").
+
 ### Is fine-tuning Saul required?
 
 Yes. Saul-7B-Base is a *base* model: domain pretraining improves legal representations, not
@@ -82,7 +87,8 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 
 - [x] Remove the duplicated `pandas` and `scikit-learn` entries from `requirements.txt`.
 - [x] Add `scipy` explicitly to `requirements.txt` (already a scikit-learn dependency) for the McNemar test in `compare`.
-- [ ] Pin `transformers`, `trl`, `peft`, `bitsandbytes`, `datasets`, `accelerate` versions using `pip freeze` from a Kaggle session.
+- [x] Pin `transformers`, `trl`, `peft`, `bitsandbytes`, `datasets`, `accelerate` versions using `pip freeze` from a Kaggle session.
+      `datasets==4.8.5` pinned from the first smoke run's `pip_freeze.txt` (2026-10-05).
       Partly done: the five versions the Llama notebooks install are pinned in `requirements-kaggle.txt` (not in the
       local CPU `requirements.txt` — transformers 4.55 would downgrade the local Python 3.14 env). `datasets` is pinned
       from the `pip_freeze.txt` the runner writes on the first Phase 6 smoke run.
@@ -137,7 +143,9 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [x] Run the scoring unit tests locally on CPU and fix any failure before using GPU time. (7/7 pass.)
 - [ ] Run `saul` task 3 baseline with `--limit 40` on Kaggle to validate loading, generation and scoring.
       Task-1-first order: run `saul` **task 1** baseline with `LIMIT = 40` first (T3 is not registered in the harness yet).
+      T1 version done 2026-10-05: loading, generation and scoring all OK (see DESIGN.md run log); T3 version still open.
 - [ ] Run `saul` task 1 finetune on a 200-example train subset to validate training and adapter reload.
+      Runner set to `MODE="finetune"`, `TRAIN_LIMIT=200`, `LIMIT=200` (first 200 val rows hold 47 positives).
 - [ ] Log the per-tokenizer instruction token count and provision budget for T3 (Llama: 331-token instruction, 670-token budget).
 - [ ] Compare the smoke-run validation trimming count for Saul task 3 with Llama's logged 9 of 1,945.
 - [ ] If Saul trims far more than Llama, set `--max_seq_len 1536` for every *new* arm, confirm pre-flight check 9 passes, and record why.
