@@ -14,6 +14,7 @@
 /kaggle/dataset_payload_ledgar/labels.json
 # Jupyter checkpoints and Kaggle CLI scratch/verification dirs (not source).
 .ipynb_checkpoints/
+__pycache__/
 /_kchk/
 /_dscheck/
 /kaggle_output/

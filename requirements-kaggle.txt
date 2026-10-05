@@ -1,0 +1,11 @@
+# GPU-side packages installed by legal_model_extension_runner.ipynb on Kaggle (T4).
+# Same pins as the Llama training notebooks' install cell, so every arm runs on the stack
+# that produced the published Llama numbers. torch comes from the Kaggle image.
+transformers==4.55.4   # MUST be <4.56: its threaded loader breaks bnb 4-bit -> full fp16 load -> OOM
+bitsandbytes==0.46.1
+accelerate==1.7.0
+peft==0.15.2
+trl==0.20.0
+# Unpinned in the notebooks too; the exact version is recorded per run in run_config.json and
+# in the runner's pip_freeze.txt. Pin it from the first smoke run's freeze.
+datasets

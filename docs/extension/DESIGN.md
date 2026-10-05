@@ -35,6 +35,22 @@ format adherence vs domain knowledge.
 Known asymmetry: the original Llama T1/T2 runs trained and evaluated in bf16; the harness
 evaluates every arm, including the re-scored Llama adapters, in fp16 (see Phase 8).
 
+## Models and licences
+
+Checked 2026-10-05 against the Hugging Face API with the account behind the `hf-token` dataset
+(config download only, no weights).
+
+| Key | Repo | Licence | Gated | Architecture / vocab | Weights on disk |
+|---|---|---|---|---|---|
+| `llama` | `meta-llama/Meta-Llama-3.1-8B` | Llama 3.1 Community | yes (accepted) | Llama / 128,256 | bf16 |
+| `mistral` | `mistralai/Mistral-7B-v0.1` | Apache-2.0 | no | Mistral / 32,000 | 14.5 GB bf16 safetensors |
+| `saul` | `Equall/Saul-7B-Base` | MIT | no | Mistral / 32,000 | **29.0 GB fp32** safetensors |
+
+All three load as 4-bit NF4 with fp16 compute, so the on-disk dtype only affects download time
+and disk use. Keep the Hugging Face cache on the container disk (the default), never under
+`/kaggle/working` (about 20 GB, and persisted as output). The exact repo commit is logged per run as
+`model_revision` in `run_config.json`.
+
 ## Harness (`scripts/legal_model_extension.py`)
 
 - Prompts and scoring come only from `scripts/task{1,2,3}_metrics.py`, extracted from the

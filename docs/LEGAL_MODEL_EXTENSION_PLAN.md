@@ -80,16 +80,21 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 
 ## Phase 2 — Pin the environment
 
-- [ ] Remove the duplicated `pandas` and `scikit-learn` entries from `requirements.txt`.
-- [ ] Add `scipy` explicitly to `requirements.txt` (already a scikit-learn dependency) for the McNemar test in `compare`.
+- [x] Remove the duplicated `pandas` and `scikit-learn` entries from `requirements.txt`.
+- [x] Add `scipy` explicitly to `requirements.txt` (already a scikit-learn dependency) for the McNemar test in `compare`.
 - [ ] Pin `transformers`, `trl`, `peft`, `bitsandbytes`, `datasets`, `accelerate` versions using `pip freeze` from a Kaggle session.
-- [ ] Add `requirements-kaggle.txt` holding only the pinned GPU-side packages the runner notebook installs.
+      Partly done: the five versions the Llama notebooks install are pinned in `requirements-kaggle.txt` (not in the
+      local CPU `requirements.txt` — transformers 4.55 would downgrade the local Python 3.14 env). `datasets` is pinned
+      from the `pip_freeze.txt` the runner writes on the first Phase 6 smoke run.
+- [x] Add `requirements-kaggle.txt` holding only the pinned GPU-side packages the runner notebook installs.
 
 ## Phase 3 — Model access
 
-- [ ] Accept the Hugging Face terms for `mistralai/Mistral-7B-v0.1` with the account behind the `hf-token` dataset.
-- [ ] Confirm `Equall/Saul-7B-Base` downloads with the same token from a local `huggingface_hub` call (config only, no weights).
-- [ ] Add `Mistral-7B` and `Saul-7B-Base` licence notes (Apache-2.0, MIT) to `docs/extension/DESIGN.md`.
+- [x] Accept the Hugging Face terms for `mistralai/Mistral-7B-v0.1` with the account behind the `hf-token` dataset.
+      Not needed: the repo is no longer gated (verified via the HF API; config + tokenizer download with the token).
+- [x] Confirm `Equall/Saul-7B-Base` downloads with the same token from a local `huggingface_hub` call (config only, no weights).
+- [x] Add `Mistral-7B` and `Saul-7B-Base` licence notes (Apache-2.0, MIT) to `docs/extension/DESIGN.md`.
+      (Also recorded: Saul ships 29 GB of fp32 weights — keep the HF cache off `/kaggle/working`.)
 
 ## Phase 4 — Package inputs for Kaggle
 

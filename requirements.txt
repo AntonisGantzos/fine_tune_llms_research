@@ -1,9 +1,12 @@
+# Local (CPU-only) environment: data prep, notebooks, analysis, scoring tests.
+# The GPU training stack is pinned separately in requirements-kaggle.txt (installed on Kaggle).
 pandas
 matplotlib
 seaborn
 tqdm
-pdfplumber 
+pdfplumber
 scikit-learn
+scipy          # McNemar / bootstrap in scripts/legal_model_extension.py compare
 torch
 transformers
 peft
@@ -11,11 +14,9 @@ bitsandbytes
 trl
 accelerate
 datasets
-pandas
 ipykernel
-scikit-learn
 dotenv
-nbstripout 
+nbstripout
 notebook
 ipywidgets
 kaggle

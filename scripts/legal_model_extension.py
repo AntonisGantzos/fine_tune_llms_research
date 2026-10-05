@@ -184,6 +184,7 @@ def run(args):
     model = AutoModelForCausalLM.from_pretrained(
         model_id, quantization_config=bnb_config, torch_dtype=compute_dtype,
         device_map={"": 0}, token=hf_token)
+    run_config["model_revision"] = getattr(model.config, "_commit_hash", None)
 
     train_metrics = None
     if args.mode == "finetune":
@@ -193,10 +194,11 @@ def run(args):
         from peft import PeftModel
         model = PeftModel.from_pretrained(model, args.adapter_dir)
 
-    import peft, trl, bitsandbytes, accelerate
+    import accelerate, bitsandbytes, datasets, peft, trl
     run_config["versions"].update(peft=peft.__version__, trl=trl.__version__,
                                   bitsandbytes=bitsandbytes.__version__,
-                                  accelerate=accelerate.__version__)
+                                  accelerate=accelerate.__version__,
+                                  datasets=datasets.__version__)
     write_json(out_dir / "run_config.json", run_config)
 
     evaluate(model, tokenizer, val_rows, val_prompts, task, metrics_mod, args, out_dir,
