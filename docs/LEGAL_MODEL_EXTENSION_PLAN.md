@@ -37,13 +37,14 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 
 ## Phase 0 — Prepare the repository
 
-- [ ] Commit the pending edits (`docs/RESEARCH_PAPER.md`, the three `*_finetune_vs_baseline_comparison.ipynb`) on `main`.
-- [ ] Create a git branch `feature/legal-model-extension` from `main`.
-- [ ] Overwrite the stale `cuad/train/cuad_train.jsonl` and `cuad/validation/cuad_validation.jsonl` with the
+- [x] Commit the pending edits (`docs/RESEARCH_PAPER.md`, the three `*_finetune_vs_baseline_comparison.ipynb`) on `main`.
+- [x] Create a git branch `feature/legal-model-extension` from `main`.
+- [x] Overwrite the stale `cuad/train/cuad_train.jsonl` and `cuad/validation/cuad_validation.jsonl` with the
       copies from `kaggle_output_task1_fine_tuned/cuad/` (6,106 / 2,208 rows) and commit them.
-- [ ] Record SHA-256 checksums of the six canonical train/validation JSONL files in `docs/extension/DESIGN.md`.
-- [ ] Create a `docs/extension/` folder for all design notes belonging to this extension.
-- [ ] Add `docs/extension/DESIGN.md` describing the 3×2 grid: Llama, Mistral, Saul × zero-shot, QLoRA.
+- [x] Record SHA-256 checksums of the six canonical train/validation JSONL files in `docs/extension/DESIGN.md`.
+      (Hashes are of LF-normalised bytes — `core.autocrlf=true` makes working copies CRLF.)
+- [x] Create a `docs/extension/` folder for all design notes belonging to this extension.
+- [x] Add `docs/extension/DESIGN.md` describing the 3×2 grid: Llama, Mistral, Saul × zero-shot, QLoRA.
 
 ## Phase 1 — Write the shared harness
 
