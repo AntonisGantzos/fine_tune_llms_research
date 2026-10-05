@@ -1,76 +1,128 @@
 # Implementation Plan: Adding Saul-7B-Base (and a Mistral-7B Control) to the Legal LLM Study
 
 Each bullet is one change. Steps are ordered; finish each phase before the next.
-Paths follow the repository layout in `README.md`.
+Paths follow the current repository layout (see `CLAUDE.md`).
+
+**Goal:** run Saul-7B-Base (legal domain-pretrained Mistral-7B) and plain Mistral-7B on the
+*exact* validation sets, prompts, decoding and scoring used for the Llama-3.1-8B runs, and
+compare all arms in a 3×2 grid: {Llama, Mistral, Saul} × {zero-shot, QLoRA}.
+
+### Revision notes (2026-10-05) — what changed versus the first draft, and why
+
+- `ledgar/` JSONL and `docs/RESULTS_OVERVIEW.md` are already committed; those Phase 0 steps were dropped.
+- The local `cuad/` T1 JSONL is **stale** (1,282 train / 448 val) — the Kaggle runs generated
+  6,106 / 2,208. The canonical eval data is the JSONL in `kaggle_output_task*_*/`, not the repo copies.
+  (Local T2 and T3 JSONL match the Kaggle copies record-for-record.)
+- `legal_model_extension.py` does not exist anywhere in the repo; Phase 1 now *writes* it.
+- Scoring code lives inside notebooks, which cannot be imported; it is extracted into `scripts/` first.
+- No notebook sets double quantisation, a scheduler or warmup — the harness uses the same defaults explicitly.
+- The Kaggle CLI only pushes a folder containing a file named `kernel-metadata.json`, so the runner
+  gets its own folder `kaggle/extension/` instead of a `kernel-metadata.extension.json` file.
+- LEDGAR is **not** used at 60k/10k/10k: the notebooks sample 100/label train (9,801) and 20/label
+  validation (1,945). The README fix in Phase 13 was corrected accordingly.
+- The T3 trimming reference is confirmed from the run log: 9/1,945 validation provisions trimmed (670-token budget).
+- Mistral/Saul use a 32k vocabulary (Llama: 128k), so the logits tensor that drove T3 OOMs is 4× smaller,
+  but the instruction token count and provision budget must be recomputed per tokenizer.
+
+### Is fine-tuning Saul required?
+
+Yes. Saul-7B-Base is a *base* model: domain pretraining improves legal representations, not
+adherence to a Yes/No answer, a JSON schema or a closed 100-label set. Zero-shot Llama-base shows
+the failure is mostly format: T1 accuracy 0.56, T2 JSON-valid 0.47, T3 valid-label 0.40 (accuracy 0.07),
+versus 0.96 / 0.997 / 0.77 after QLoRA. Comparing zero-shot Saul to fine-tuned Llama would confound domain
+knowledge with task adaptation. Keep Saul zero-shot as a cheap arm, but the headline comparison
+needs Saul-QLoRA versus Mistral-QLoRA.
 
 ---
 
 ## Phase 0 — Prepare the repository
 
-- [ ] Create a git branch `feature/legal-model-extension` from the current main branch.
-- [ ] Commit the untracked `ledgar/` JSONL splits so the T3 data version is versioned.
-- [ ] Commit the untracked `docs/RESULTS_OVERVIEW.md` before any new results are added.
+- [ ] Commit the pending edits (`docs/RESEARCH_PAPER.md`, the three `*_finetune_vs_baseline_comparison.ipynb`) on `main`.
+- [ ] Create a git branch `feature/legal-model-extension` from `main`.
+- [ ] Overwrite the stale `cuad/train/cuad_train.jsonl` and `cuad/validation/cuad_validation.jsonl` with the
+      copies from `kaggle_output_task1_fine_tuned/cuad/` (6,106 / 2,208 rows) and commit them.
+- [ ] Record SHA-256 checksums of the six canonical train/validation JSONL files in `docs/extension/DESIGN.md`.
 - [ ] Create a `docs/extension/` folder for all design notes belonging to this extension.
 - [ ] Add `docs/extension/DESIGN.md` describing the 3×2 grid: Llama, Mistral, Saul × zero-shot, QLoRA.
 
-## Phase 1 — Add the shared harness
+## Phase 1 — Write the shared harness
 
-- [ ] Copy `legal_model_extension.py` into `scripts/` as the single code path for every new run.
-- [ ] Replace its `score_t1` with an import of the scoring function from `llm_fine_tuning_LORA_task1_v2.ipynb`.
-- [ ] Replace its `score_t2` with the task-2 notebook's scoring functions, extracted into `scripts/task2_metrics.py`.
-- [ ] Replace its `score_t3` with the task-3 notebook's scoring functions, extracted into `scripts/task3_metrics.py`.
-- [ ] Set the harness `BitsAndBytesConfig` double-quantisation flag to match the notebooks' exact setting.
-- [ ] Copy any scheduler and warmup `SFTConfig` fields from the notebooks into the harness `finetune()` function.
+- [ ] Extract T1 scoring (`predict` answer parsing + accuracy / classification report / confusion matrix)
+      from `llm_fine_tuning_LORA_task1_v2.ipynb` into `scripts/task1_metrics.py`.
+- [ ] Extract T2 scoring (`normalize_answer`, `parse_prediction`, `norm`, `token_f1`, `value_f1`)
+      from `llm_fine_tuning_LORA_task2.ipynb` into `scripts/task2_metrics.py`.
+- [ ] Extract T3 prompt + scoring (`build_prompt`, `truncate_input`, `predict_labels` parsing, `__INVALID__`
+      sentinel, macro/micro F1) from `llm_fine_tuning_LORA_task3.ipynb` into `scripts/task3_metrics.py`.
+- [ ] Write `scripts/legal_model_extension.py` with `run` (modes `baseline`, `finetune`, `adapter`) and `compare`
+      subcommands, importing only those three modules for prompts and scoring.
+- [ ] Use the notebooks' quantisation exactly: NF4, 4-bit, **no** double quantisation, compute dtype fp16 (T4 has no bf16).
+- [ ] Use the notebooks' training settings exactly (from `train_metrics.json`): 1 epoch, lr 2e-4, weight decay 0.001,
+      `paged_adamw_32bit`, LoRA r=16 / α=16 / dropout 0.05 on q/k/v/o, `completion_only_loss=True`, no packing,
+      TRL-default scheduler and warmup.
+- [ ] Use per-task batching as in the notebooks: T1/T2 batch 1 × accum 8; T3 batch 2 × accum 4 with `group_by_length=True`.
+- [ ] Use the notebooks' decoding exactly: greedy, `max_new_tokens` 3 (T1) / 128 (T2) / 16 (T3), max length 1024.
+- [ ] Port the T3 safeguards into every arm: `embed_tokens`/`lm_head` recast to fp16 after trainer init,
+      `generate()` inside `torch.autocast("cuda", dtype=float16)`, `TimeBudgetCallback` at 7 h, pre-flight checks 9 and 10.
+- [ ] Set `pad_token = eos_token` when the tokenizer has none (Mistral/Saul ship without one) and log the choice.
+- [ ] Write `eval_metrics.json`, `train_metrics.json` and per-example `predictions.jsonl` (needed for paired tests) per run.
 - [ ] Add a `--limit N` argument that evaluates only the first N validation examples, for smoke tests.
 - [ ] Add a CPU-only unit test `scripts/test_extension_scoring.py` covering valid, invalid and edge-case completions.
+- [ ] Verify locally on CPU that the extracted scorers reproduce the existing `eval_metrics.json` numbers when fed the
+      fine-tuned runs' saved predictions (if not saved, check against a hand-built fixture instead).
 
 ## Phase 2 — Pin the environment
 
 - [ ] Remove the duplicated `pandas` and `scikit-learn` entries from `requirements.txt`.
-- [ ] Add `scipy` to `requirements.txt` for the McNemar test in the `compare` command.
+- [ ] Add `scipy` explicitly to `requirements.txt` (already a scikit-learn dependency) for the McNemar test in `compare`.
 - [ ] Pin `transformers`, `trl`, `peft`, `bitsandbytes`, `datasets`, `accelerate` versions using `pip freeze` from a Kaggle session.
 - [ ] Add `requirements-kaggle.txt` holding only the pinned GPU-side packages the runner notebook installs.
 
 ## Phase 3 — Model access
 
 - [ ] Accept the Hugging Face terms for `mistralai/Mistral-7B-v0.1` with the account behind the `hf-token` dataset.
-- [ ] Confirm `Equall/Saul-7B-Base` downloads with the same token from a local `huggingface_hub` call.
+- [ ] Confirm `Equall/Saul-7B-Base` downloads with the same token from a local `huggingface_hub` call (config only, no weights).
 - [ ] Add `Mistral-7B` and `Saul-7B-Base` licence notes (Apache-2.0, MIT) to `docs/extension/DESIGN.md`.
 
 ## Phase 4 — Package inputs for Kaggle
 
 - [ ] Create a private Kaggle dataset `legal-extension-code` containing `scripts/` and `requirements-kaggle.txt`.
-- [ ] Create a private Kaggle dataset `legal-extension-data` containing `cuad/` and `ledgar/` JSONL plus `data/LEDGAR/labels.json`.
-- [ ] Create a private Kaggle dataset `llama-adapters` containing the three saved `llama-3.1-8B-*` adapter folders.
-- [ ] Add a `kaggle/push_extension_datasets.ps1` script that versions all three datasets with one command.
+- [ ] Create a private Kaggle dataset `legal-extension-data` containing the six canonical JSONL files plus
+      `data/LEDGAR/labels.json`, staged flat (no `--dir-mode zip`, like `ledgar-lexglue`).
+- [ ] Create a private Kaggle dataset `llama-adapters` from `kaggle_output_task{1,2,3}_fine_tuned/llama-3.1-8B-*` (adapter files only, no `results/` checkpoints).
+- [ ] Add a `kaggle/push_extension_datasets.ps1` script that versions all three datasets with one command,
+      calling the CLI as `python -m kaggle`.
 
 ## Phase 5 — Build the runner notebook
 
-- [ ] Create `legal_model_extension_runner.ipynb` with an `ON_KAGGLE` flag matching the existing notebooks' convention.
+- [ ] Create `legal_model_extension_runner.ipynb` with the `ON_KAGGLE` / `DATA_DIR` / `WORK_DIR` pattern of the existing notebooks.
 - [ ] Add a cell setting `CUDA_VISIBLE_DEVICES=0` to pin the run to one T4.
 - [ ] Add a cell installing `requirements-kaggle.txt` from the mounted `legal-extension-code` dataset.
-- [ ] Add a cell reading the HF token from the private `hf-token` dataset and logging in.
+- [ ] Add a cell reading the HF token with the existing `get_hf_token()` (`hf-token` dataset → Secrets → `.env`); never print it.
 - [ ] Add a parameters cell defining `TASK`, `MODEL`, `MODE`, and `ADAPTER` as the only values edited per run.
-- [ ] Add a cell mapping `TASK` to the correct train JSONL, validation JSONL and labels paths.
+- [ ] Add a cell mapping `TASK` to the correct train JSONL, validation JSONL and labels paths under `/kaggle/input/`.
 - [ ] Add a cell invoking `scripts/legal_model_extension.py run` with the parameters, writing to `/kaggle/working/runs/`.
 - [ ] Add a final cell copying the run log into the output directory for retrieval.
-- [ ] Add a `kaggle/kernel-metadata.extension.json` attaching the code, data, adapter and token datasets to the runner.
-- [ ] Add a `-Metadata` parameter to `kaggle/run.ps1` so it can push the extension metadata file.
-- [ ] Make `kaggle/run.ps1` download outputs into `kaggle_output_extension/<model>_t<task>_<mode>/` for extension runs.
+- [ ] Add `kaggle/extension/kernel-metadata.json` (new kernel `id`, `enable_internet: true`, GPU T4) attaching the code,
+      data, adapter and `hf-token` datasets; `code_file` points at `../../legal_model_extension_runner.ipynb`.
+- [ ] Add a `-KernelDir` parameter to `kaggle/run.ps1` (default `kaggle/`) so it can push `kaggle/extension/`.
+- [ ] Make `kaggle/run.ps1` download extension runs into `kaggle_output_extension/<model>_t<task>_<mode>/` and git-ignore that folder.
+- [ ] Set accelerator GPU T4×2 once for the new kernel on kaggle.com; never save from the web editor (it empties `dataset_sources`).
 
 ## Phase 6 — Smoke tests (cheap, run before any long job)
 
 - [ ] Run the scoring unit tests locally on CPU and fix any failure before using GPU time.
 - [ ] Run `saul` task 3 baseline with `--limit 40` on Kaggle to validate loading, generation and scoring.
 - [ ] Run `saul` task 1 finetune on a 200-example train subset to validate training and adapter reload.
-- [ ] Check the smoke-run `val_inputs_trimmed` count for Saul task 3 against Llama's logged 9 of 1,945.
-- [ ] If Saul trims far more than Llama, set `--max_seq_len 1536` for every arm and record why.
+- [ ] Log the per-tokenizer instruction token count and provision budget for T3 (Llama: 331-token instruction, 670-token budget).
+- [ ] Compare the smoke-run validation trimming count for Saul task 3 with Llama's logged 9 of 1,945.
+- [ ] If Saul trims far more than Llama, set `--max_seq_len 1536` for every *new* arm, confirm pre-flight check 9 passes, and record why.
 
 ## Phase 7 — Zero-shot baselines (about one hour each)
 
-- [ ] Run `llama` baseline for task 1 through the harness to establish the single-code-path reference.
-- [ ] Run `llama` baseline for task 2 through the harness.
-- [ ] Run `llama` baseline for task 3 through the harness, closing the old fp16/bf16 and truncation asymmetries.
+- [ ] Run `llama` baseline for task 1 through the harness; it should reproduce accuracy 0.561 on 2,208 examples.
+- [ ] Run `llama` baseline for task 2 through the harness; it should reproduce JSON-valid 0.472 / EM 0.090 / F1 0.141 on 631.
+- [ ] Run `llama` baseline for task 3 through the harness, closing the old bf16 and prompt-truncation asymmetries
+      of `llama_3.1_task_3_no_fine_tune.ipynb` (old: accuracy 0.065, macro-F1 0.066).
 - [ ] Run `mistral` baseline for task 1.
 - [ ] Run `mistral` baseline for task 2.
 - [ ] Run `mistral` baseline for task 3.
@@ -81,10 +133,11 @@ Paths follow the repository layout in `README.md`.
 
 ## Phase 8 — Re-score the existing Llama adapters
 
-- [ ] Run `llama` in `adapter` mode for task 1 using the saved `llama-3.1-8B-cuad-task1` adapter.
-- [ ] Run `llama` in `adapter` mode for task 2 using the saved `llama-3.1-8B-cuad-task2` adapter.
-- [ ] Run `llama` in `adapter` mode for task 3 using the saved `llama-3.1-8B-ledgar-task3` adapter.
-- [ ] Record in `docs/extension/DESIGN.md` any gap between these scores and the paper's in-process scores.
+- [ ] Run `llama` in `adapter` mode for task 1 with `llama-3.1-8B-cuad-task1` (paper: accuracy 0.962).
+- [ ] Run `llama` in `adapter` mode for task 2 with `llama-3.1-8B-cuad-task2` (paper: EM 0.691, F1 0.819).
+- [ ] Run `llama` in `adapter` mode for task 3 with `llama-3.1-8B-ledgar-task3` (paper: accuracy 0.769, macro-F1 0.751).
+- [ ] Record in `docs/extension/DESIGN.md` any gap between these scores and the paper's in-process scores
+      (T1/T2 Llama were trained and evaluated in bf16; the harness evaluates in fp16).
 
 ## Phase 9 — QLoRA fine-tunes (one Kaggle session each)
 
@@ -92,8 +145,8 @@ Paths follow the repository layout in `README.md`.
 - [ ] Fine-tune `saul` on task 2.
 - [ ] Fine-tune `mistral` on task 1.
 - [ ] Fine-tune `saul` on task 1.
-- [ ] Fine-tune `mistral` on task 3, keeping the 7-hour time-budget callback enabled.
-- [ ] Fine-tune `saul` on task 3, keeping the 7-hour time-budget callback enabled.
+- [ ] Fine-tune `mistral` on task 3 with the 7-hour time-budget callback (Llama T3 needed 6.1 h of it).
+- [ ] Fine-tune `saul` on task 3 with the 7-hour time-budget callback.
 - [ ] Reject and re-run any run whose `train_metrics.json` shows `stopped_on_time_budget: true`.
 
 ## Phase 10 — Paired comparisons
@@ -102,6 +155,7 @@ Paths follow the repository layout in `README.md`.
 - [ ] Run `compare` Saul-finetune versus Mistral-finetune for each task, the headline legal-pretraining comparison.
 - [ ] Run `compare` Saul-finetune versus Llama-adapter for each task, the best-model comparison.
 - [ ] Run `compare` Saul-finetune versus Saul-baseline for each task, matching the paper's existing delta.
+- [ ] Use McNemar on per-example correctness (T1 accuracy, T2 exact match, T3 accuracy) and bootstrap 95% CIs for F1 metrics.
 - [ ] Add `scripts/collect_extension_results.py` merging every `eval_metrics.json` and `compare_*.json` into one CSV.
 
 ## Phase 11 — Analysis notebook
@@ -110,24 +164,24 @@ Paths follow the repository layout in `README.md`.
 - [ ] Add a headline table per task: six arms, validity gate, headline metric, 95% CI.
 - [ ] Add a validity-versus-content chart separating format gains from content gains for tasks 2 and 3.
 - [ ] Add a task-3 per-label F1 comparison of Saul-finetune versus Mistral-finetune.
-- [ ] Add a task-2 per-category table excluding `Warranty Duration` from the overall summary.
+- [ ] Add a task-2 per-category table excluding `Warranty Duration` (n=11) from the overall summary.
 - [ ] Add a task-1 table comparing lenient accuracy with the new strict-validity rate for every arm.
 
 ## Phase 12 — Contamination check
 
 - [ ] Read the SaulLM-7B corpus section and record whether SEC EDGAR data was in pretraining.
-- [ ] If EDGAR was included, add a contamination caveat to every Saul result in the analysis notebook.
+- [ ] If EDGAR was included, add a contamination caveat to every Saul result — both CUAD and LEDGAR are EDGAR-sourced.
 
 ## Phase 13 — Documentation and paper
 
-- [ ] Update the `README.md` task-status table: T2 and T3 marked done, extension marked in progress.
-- [ ] Fix `README.md` contract count from 545 to 510, matching `master_clauses.csv`.
-- [ ] Fix `README.md` LEDGAR description to the LexGLUE 100-label, 60k/10k/10k configuration actually used.
-- [ ] Add the extension notebooks, scripts and output folder to the `README.md` repository layout.
-- [ ] Add an extension section to `docs/kaggle/kaggle_connection_guide.md` covering the three new datasets.
-- [ ] Add a methodology subsection to `RESEARCH_PAPER.md` describing the 3×2 design and the Mistral control.
-- [ ] Add an extension results subsection to `RESEARCH_PAPER.md` with tables generated from the merged CSV.
-- [ ] Add the per-tokenizer trimming counts and any `max_seq_len` change to the paper's limitations section.
-- [ ] Add Mistral 7B (Jiang et al., 2023) and SaulLM-7B to the paper's references.
+- [ ] Update the `README.md` and `CLAUDE.md` task-status tables: T1–T3 marked done, extension marked in progress.
+- [ ] Fix the contract count from 545 to 510 in `README.md` and `CLAUDE.md`, matching `master_clauses.csv`.
+- [ ] Fix the `README.md` LEDGAR description: LexGLUE 100-label config, stratified 100/label train (9,801) and 20/label validation (1,945).
+- [ ] Add the extension notebooks, scripts and output folder to the `README.md` layout and the `CLAUDE.md` notebook list.
+- [ ] Add an extension section to `docs/kaggle/kaggle_connection_guide.md` covering the three new datasets and `kaggle/extension/`.
+- [ ] Add a methodology subsection to `docs/RESEARCH_PAPER.md` describing the 3×2 design and the Mistral control.
+- [ ] Add an extension results subsection to `docs/RESEARCH_PAPER.md` with tables generated from the merged CSV.
+- [ ] Add the per-tokenizer trimming counts, the bf16-vs-fp16 Llama caveat and any `max_seq_len` change to the limitations section.
+- [ ] Add Mistral 7B (Jiang et al., 2023) and SaulLM-7B (Colombo et al., 2024) to the paper's references.
 - [ ] Add every new artifact path to the paper's Appendix A provenance table.
 - [ ] Open a pull request from `feature/legal-model-extension` once all phases are complete.
