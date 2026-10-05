@@ -12,6 +12,10 @@
 # Staged LEDGAR CSVs (large; re-created by stage_data.ps1).
 /kaggle/dataset_payload_ledgar/*.csv
 /kaggle/dataset_payload_ledgar/labels.json
+# Extension payloads: staged copies are re-created by push_extension_datasets.ps1;
+# only each dataset-metadata.json is tracked.
+/kaggle/dataset_payload_ext_*/*
+!/kaggle/dataset_payload_ext_*/dataset-metadata.json
 # Jupyter checkpoints and Kaggle CLI scratch/verification dirs (not source).
 .ipynb_checkpoints/
 __pycache__/
@@ -24,3 +28,7 @@ __pycache__/
 /kaggle_output_task2_baseline
 /kaggle_output_task3_fine_tuned
 /kaggle_output_task3_baseline
+# Legal-model extension: downloaded Kaggle runs, and local runner-notebook test artifacts.
+/kaggle_output_extension/
+/runs/
+/pip_freeze.txt

@@ -1,0 +1,19 @@
+{
+  "id": "antonisgantzos/legal-model-extension-runner",
+  "title": "Legal Model Extension Runner",
+  "code_file": "../../legal_model_extension_runner.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "enable_internet": true,
+  "dataset_sources": [
+    "antonisgantzos/legal-extension-code",
+    "antonisgantzos/legal-extension-data",
+    "antonisgantzos/llama-adapters",
+    "antonisgantzos/hf-token"
+  ],
+  "competition_sources": [],
+  "kernel_sources": []
+}

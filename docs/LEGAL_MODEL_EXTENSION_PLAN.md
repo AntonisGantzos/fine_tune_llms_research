@@ -99,32 +99,44 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 ## Phase 4 — Package inputs for Kaggle
 
 - [ ] Create a private Kaggle dataset `legal-extension-code` containing `scripts/` and `requirements-kaggle.txt`.
+      Payload staged + verified (`kaggle/dataset_payload_ext_code/`: harness, `task*_metrics.py`, requirements);
+      upload pending — run `push_extension_datasets.ps1`.
 - [ ] Create a private Kaggle dataset `legal-extension-data` containing the six canonical JSONL files plus
       `data/LEDGAR/labels.json`, staged flat (no `--dir-mode zip`, like `ledgar-lexglue`).
+      Payload staged; all six files match the DESIGN.md SHA-256 table. Upload pending.
 - [ ] Create a private Kaggle dataset `llama-adapters` from `kaggle_output_task{1,2,3}_fine_tuned/llama-3.1-8B-*` (adapter files only, no `results/` checkpoints).
-- [ ] Add a `kaggle/push_extension_datasets.ps1` script that versions all three datasets with one command,
-      calling the CLI as `python -m kaggle`.
+      Payload staged flat as `taskN__adapter_config.json` / `taskN__adapter_model.safetensors` (the CLI skips or
+      flattens subfolders); the runner rebuilds the adapter folder in `/tmp`. Upload pending.
+- [x] Add a `kaggle/push_extension_datasets.ps1` script that versions all three datasets with one command,
+      calling the CLI as `python -m kaggle`. (Creates a dataset on first use, versions it afterwards; `-StageOnly`, `-Only`.)
 
 ## Phase 5 — Build the runner notebook
 
-- [ ] Create `legal_model_extension_runner.ipynb` with the `ON_KAGGLE` / `DATA_DIR` / `WORK_DIR` pattern of the existing notebooks.
-- [ ] Add a cell setting `CUDA_VISIBLE_DEVICES=0` to pin the run to one T4.
-- [ ] Add a cell installing `requirements-kaggle.txt` from the mounted `legal-extension-code` dataset.
-- [ ] Add a cell reading the HF token with the existing `get_hf_token()` (`hf-token` dataset → Secrets → `.env`); never print it.
-- [ ] Add a parameters cell defining `TASK`, `MODEL`, `MODE`, and `ADAPTER` as the only values edited per run.
-- [ ] Add a cell mapping `TASK` to the correct train JSONL, validation JSONL and labels paths under `/kaggle/input/`.
-- [ ] Add a cell invoking `scripts/legal_model_extension.py run` with the parameters, writing to `/kaggle/working/runs/`.
-- [ ] Add a final cell copying the run log into the output directory for retrieval.
-- [ ] Add `kaggle/extension/kernel-metadata.json` (new kernel `id`, `enable_internet: true`, GPU T4) attaching the code,
+- [x] Create `legal_model_extension_runner.ipynb` with the `ON_KAGGLE` / `DATA_DIR` / `WORK_DIR` pattern of the existing notebooks.
+- [x] Add a cell setting `CUDA_VISIBLE_DEVICES=0` to pin the run to one T4.
+- [x] Add a cell installing `requirements-kaggle.txt` from the mounted `legal-extension-code` dataset.
+      (Also writes `pip_freeze.txt`, which closes the Phase 2 pinning step after the first smoke run.)
+- [x] Add a cell reading the HF token with the existing `get_hf_token()` (`hf-token` dataset → Secrets → `.env`); never print it.
+- [x] Add a parameters cell defining `TASK`, `MODEL`, `MODE`, and `ADAPTER` as the only values edited per run.
+      (Plus `LIMIT` / `TRAIN_LIMIT` for smoke tests and `MAX_SEQ_LEN`.)
+- [x] Add a cell mapping `TASK` to the correct train JSONL, validation JSONL and labels paths under `/kaggle/input/`.
+      (Files are found by name under `/kaggle/input`, so a change in Kaggle's mount layout cannot break it.)
+- [x] Add a cell invoking `scripts/legal_model_extension.py run` with the parameters, writing to `/kaggle/working/runs/`.
+- [x] Add a final cell copying the run log into the output directory for retrieval.
+      (The launch cell tees the harness output into `runs/<run>/run.log`; the final cell adds `pip_freeze.txt` and
+      fails the kernel if the harness failed.) Executed locally end to end: stops at the expected "CUDA not available".
+- [x] Add `kaggle/extension/kernel-metadata.json` (new kernel `id`, `enable_internet: true`, GPU T4) attaching the code,
       data, adapter and `hf-token` datasets; `code_file` points at `../../legal_model_extension_runner.ipynb`.
-- [ ] Add a `-KernelDir` parameter to `kaggle/run.ps1` (default `kaggle/`) so it can push `kaggle/extension/`.
-- [ ] Make `kaggle/run.ps1` download extension runs into `kaggle_output_extension/<model>_t<task>_<mode>/` and git-ignore that folder.
+- [x] Add a `-KernelDir` parameter to `kaggle/run.ps1` (default `kaggle/`) so it can push `kaggle/extension/`.
+- [x] Make `kaggle/run.ps1` download extension runs into `kaggle_output_extension/<model>_t<task>_<mode>/` and git-ignore that folder.
+      (`-OutDir kaggle_output_extension`; each run lands in `kaggle_output_extension/runs/<model>_t<task>_<mode>[_smoke]/`.)
 - [ ] Set accelerator GPU T4×2 once for the new kernel on kaggle.com; never save from the web editor (it empties `dataset_sources`).
 
 ## Phase 6 — Smoke tests (cheap, run before any long job)
 
-- [ ] Run the scoring unit tests locally on CPU and fix any failure before using GPU time.
+- [x] Run the scoring unit tests locally on CPU and fix any failure before using GPU time. (7/7 pass.)
 - [ ] Run `saul` task 3 baseline with `--limit 40` on Kaggle to validate loading, generation and scoring.
+      Task-1-first order: run `saul` **task 1** baseline with `LIMIT = 40` first (T3 is not registered in the harness yet).
 - [ ] Run `saul` task 1 finetune on a 200-example train subset to validate training and adapter reload.
 - [ ] Log the per-tokenizer instruction token count and provision budget for T3 (Llama: 331-token instruction, 670-token budget).
 - [ ] Compare the smoke-run validation trimming count for Saul task 3 with Llama's logged 9 of 1,945.
