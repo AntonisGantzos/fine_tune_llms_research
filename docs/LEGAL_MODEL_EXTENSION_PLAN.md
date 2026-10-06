@@ -179,7 +179,7 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [ ] Fine-tune `mistral` on task 2 first, as the shortest run, to confirm timing estimates.
 - [ ] Fine-tune `saul` on task 2.
 - [ ] Fine-tune `mistral` on task 1.
-- [ ] Fine-tune `saul` on task 1.
+- [x] Fine-tune `saul` on task 1. (2026-10-06: 3.06 h, 1 full epoch; accuracy 0.968, macro-F1 0.959.)
 - [ ] Fine-tune `mistral` on task 3 with the 7-hour time-budget callback (Llama T3 needed 6.1 h of it).
 - [ ] Fine-tune `saul` on task 3 with the 7-hour time-budget callback.
 - [ ] Reject and re-run any run whose `train_metrics.json` shows `stopped_on_time_budget: true`.

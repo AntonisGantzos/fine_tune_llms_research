@@ -108,6 +108,22 @@ because there it is confirmed.
 | 2026-10-05 | `saul_t1_baseline_smoke` (`--limit 40`) | Pipeline OK end to end on a T4. Saul download 2.0 min (29 GB), load 1.8 min, eval 13.8 s for 40 examples (0.35 s/example → about 13 min for all 2,208). Answered "No" to all 40; 100% strictly valid. The 0.95 accuracy is meaningless: the first 40 rows contain only 2 positives (558 / 2,208 overall). Kaggle mounted the datasets at `/kaggle/input/datasets/antonisgantzos/<slug>/` — the runner resolves by file name, so this needed no change. Kaggle stack: `datasets==4.8.5`, torch 2.11.0+cu128, other pins as requested. |
 | 2026-10-05 | `saul_t1_finetune_smoke` (`--train_limit 200 --limit 200`) | All pre-flight checks passed: worst-case batch (1,017 tokens) peaks at 6.0 GB, projected 6.1 / 15.6 GB; eval-path `generate()` OK. 25 steps in 338.6 s = **13.5 s/step in fp16** → full T1 epoch (764 steps) ≈ **2.9 h**, inside the 7 h budget (Llama bf16 needed 8.6 h). Loss 0.302. Eval on first 200 val rows (47 positives): accuracy 0.905, Yes-F1 0.82, 100% strictly valid, 0.82 s/example with the adapter → about 30 min for all 2,208. Adapter saved (54.6 MB, base `Equall/Saul-7B-Base`). Trimmed: 2/200 train, 1/200 val. Bug found: `epochs_completed` was `null` (fixed to read `trainer.state.epoch`). |
 | 2026-10-06 | `saul_t1_baseline` (full, 2,208) | **Degenerate: "No" for every example** (no category ever gets a Yes). Accuracy 0.747 = the majority-class rate (1,650 / 2,208), Yes-F1 0.00, **macro-F1 0.43**. 100% strictly valid (raw: "No" 2,119, "no" 35, plus trailing newlines). Eval 882 s (0.40 s/example). 8/2,208 val inputs trimmed, as predicted on CPU. For comparison, Llama zero-shot (notebook, bf16): accuracy 0.561, macro-F1 0.535, Yes-recall 0.65. **Saul's higher accuracy is not a better model**: on this imbalanced set "always No" scores 0.747, so T1 zero-shot arms must be compared on macro-F1 (what `compare` bootstraps), not accuracy. |
+| 2026-10-06 | `saul_t1_finetune` (full: 6,106 train, 2,208 val) | Pre-flight checks all OK (peak 6.0 GB, projected 6.1 / 15.6 GB). 764 steps, 1.0 epoch, **3.06 h** (about 14 s/step), not stopped on budget. Final loss 0.088. **Accuracy 0.968, macro-F1 0.959**, Yes P/R/F1 0.901 / 0.980 / 0.939, confusion `[[547, 11], [60, 1590]]`, 100% strictly valid. Eval 1,896 s (0.86 s/example). 73 train / 8 val inputs trimmed. |
+
+### T1 summary so far (validation, n = 2,208)
+
+| Arm | Accuracy | Macro-F1 | Yes-F1 | Errors | Source |
+|---|---:|---:|---:|---:|---|
+| Saul zero-shot | 0.747 | 0.428 | 0.000 | 558 | harness, fp16 |
+| Llama zero-shot | 0.561 | 0.535 | 0.426 | 969 | original notebook, bf16 |
+| Saul QLoRA | **0.968** | **0.959** | **0.939** | 71 | harness, fp16 |
+| Llama QLoRA | 0.962 | 0.951 | 0.928 | 85 | original notebook, bf16 |
+
+Saul QLoRA is ahead of Llama QLoRA by 14 examples (0.6 pp accuracy). This is **not yet a tested
+difference**: the Llama numbers come from the notebooks (bf16, sequence truncation on 6 val
+prompts) and have no per-example predictions, so McNemar / bootstrap cannot be run. Re-scoring
+the Llama adapter through the harness (Phase 8) produces matched fp16 predictions for the paired
+`compare`. The contamination caveat above applies to the Saul rows.
 
 ## Canonical data (SHA-256)
 
