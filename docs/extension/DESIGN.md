@@ -57,6 +57,19 @@ and disk use. Keep the Hugging Face cache on the container disk (the default), n
 `/kaggle/working` (about 20 GB, and persisted as output). The exact repo commit is logged per run as
 `model_revision` in `run_config.json`.
 
+## Contamination caveat (applies to every Saul result)
+
+SaulLM-7B (Colombo et al., 2024, arXiv:2403.03883, Table 1) lists **SEC EDGAR (about 5B tokens)**
+among its legal pretraining sources, next to FreeLaw, the English MultiLegal Pile, EuroParl,
+GovInfo, USPTO and others (about 94B raw tokens, deduplicated to about 30B). The paper reports no
+decontamination against CUAD, LEDGAR or LexGLUE. Both CUAD contracts and LEDGAR provisions are
+taken from EDGAR filings, so Saul may have seen the **raw contract text** of our validation
+examples during pretraining. It cannot have seen the **labels** (CUAD annotations, LEDGAR
+categories), which are not part of EDGAR. Any Saul advantage may partly reflect memorised
+text rather than better legal reasoning. Llama-3.1's pretraining data is undisclosed web text and
+may also include EDGAR filings, so this risk is not unique to Saul. It is documented for Saul
+because there it is confirmed.
+
 ## Harness (`scripts/legal_model_extension.py`)
 
 - Prompts and scoring come only from `scripts/task{1,2,3}_metrics.py`, extracted from the

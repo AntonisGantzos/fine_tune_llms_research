@@ -204,8 +204,10 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 
 ## Phase 12 — Contamination check
 
-- [ ] Read the SaulLM-7B corpus section and record whether SEC EDGAR data was in pretraining.
-- [ ] If EDGAR was included, add a contamination caveat to every Saul result — both CUAD and LEDGAR are EDGAR-sourced.
+- [x] Read the SaulLM-7B corpus section and record whether SEC EDGAR data was in pretraining.
+      Yes: Table 1 of arXiv:2403.03883 lists EDGAR (about 5B tokens); no benchmark decontamination reported.
+- [x] If EDGAR was included, add a contamination caveat to every Saul result — both CUAD and LEDGAR are EDGAR-sourced.
+      Caveat written in `docs/extension/DESIGN.md`; it must be repeated beside Saul results in the paper (Phase 13).
 
 ## Phase 13 — Documentation and paper
 
