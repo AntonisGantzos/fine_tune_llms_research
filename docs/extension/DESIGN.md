@@ -161,6 +161,7 @@ legal pretraining helps here. The contamination caveat above applies to the Saul
 | Date | Run | Result |
 |---|---|---|
 | 2026-10-06 | `saul_t2_baseline` (full, 631) | **JSON-valid 0.10, EM 0.00, F1 0.07**; lenient JSON-valid 0.24. Eval 2,125 s (3.4 s/example: most completions run to the 128-token cap). 0/631 val inputs trimmed. Failure modes in the raw output: 425/631 start with a bare JSON array (`["SPONSORSHIP AGREEMENT"]`, no object); 93 give a correct-looking object and then keep generating (`\n\n### Instruction: ...`), which the notebooks' strict rule counts as invalid; 52 open a Markdown code fence. Every valid object wraps the value in a list (`{"Document Name": ["X"]}`), which the notebook rule scores EM 0 but F1 1 against a scalar gold, hence Document Name F1 0.39 with EM 0.00. **Format is not the whole story**: a generous re-score for the record only (first object, unwrap one-item lists) gives EM 0.079 / F1 0.087, still below Llama zero-shot under the strict rule. |
+| 2026-10-06 | `saul_t2_finetune` (full: 2,454 train, 631 val) | Pre-flight checks all OK (worst-case batch 757 tokens, peak 5.7 GB, projected 5.8 / 15.6 GB). 307 steps, 1.0 epoch, **0.99 h** (11.6 s/step), not stopped on budget. Final loss 0.185. **JSON-valid 0.995, EM 0.724, F1 0.853**; lenient JSON-valid also 0.995 (it always stops after the object now). The 3 invalid outputs are long `Parties` answers cut off by the 128-token cap before the JSON closed. Weakest categories are the same as Llama's: Parties EM 0.19 (F1 0.89), Expiration Date 0.40, Renewal Term 0.56. Eval 1,381 s (2.2 s/example). 1 train / 0 val inputs trimmed. |
 
 ### T2 summary so far (validation, n = 631)
 
@@ -168,7 +169,20 @@ legal pretraining helps here. The contamination caveat above applies to the Saul
 |---|---:|---:|---:|---|
 | Saul zero-shot | 0.097 | 0.000 | 0.069 | harness, fp16 |
 | Llama zero-shot | 0.472 | 0.090 | 0.141 | original notebook, bf16 |
+| Saul QLoRA | 0.995 | **0.724** | **0.853** | harness, fp16 |
 | Llama QLoRA | 0.997 | 0.691 | 0.819 | original notebook, bf16 |
+
+Per category (EM), Saul QLoRA vs Llama QLoRA (notebook): Agreement Date 0.95 vs 0.84, Effective
+Date 0.91 vs 0.79, Notice Period 0.97 vs 0.93, Governing Law 0.94 vs 0.92; the rest within
+±0.03. The gain is concentrated in the date categories.
+
+**Paired tests (`compare`, 2,000 bootstrap resamples; McNemar on exact match, CI on mean F1):**
+
+| A → B | Discordant (only A / only B correct) | McNemar p | F1 diff B−A, 95% CI |
+|---|---|---:|---|
+| Saul zero-shot → Saul QLoRA | 0 / 457 | 5.4e-138 | +0.784 [+0.753, +0.814] |
+
+Saul QLoRA vs Llama QLoRA needs the Llama adapter re-scored through the harness (Phase 8, next run).
 
 ## Canonical data (SHA-256)
 

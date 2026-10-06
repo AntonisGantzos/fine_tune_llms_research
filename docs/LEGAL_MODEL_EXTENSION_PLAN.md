@@ -181,7 +181,8 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 ## Phase 9 — QLoRA fine-tunes (one Kaggle session each)
 
 - [ ] Fine-tune `mistral` on task 2 first, as the shortest run, to confirm timing estimates.
-- [ ] Fine-tune `saul` on task 2.
+- [x] Fine-tune `saul` on task 2.
+      (2026-10-06: 0.99 h; JSON-valid 0.995, EM 0.724, F1 0.853.)
 - [ ] Fine-tune `mistral` on task 1.
 - [x] Fine-tune `saul` on task 1. (2026-10-06: 3.06 h, 1 full epoch; accuracy 0.968, macro-F1 0.959.)
 - [ ] Fine-tune `mistral` on task 3 with the 7-hour time-budget callback (Llama T3 needed 6.1 h of it).
