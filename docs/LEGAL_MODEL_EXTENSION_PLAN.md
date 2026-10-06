@@ -58,19 +58,20 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [x] Extract T2 scoring (`normalize_answer`, `parse_prediction`, `norm`, `token_f1`, `value_f1`)
       from `llm_fine_tuning_LORA_task2.ipynb` into `scripts/task2_metrics.py`.
       (`normalize_answer` is data-building only — the JSONL already holds its output — so it is not needed for scoring.)
-- [ ] Extract T3 prompt + scoring (`build_prompt`, `truncate_input`, `predict_labels` parsing, `__INVALID__`
+- [x] Extract T3 prompt + scoring (`build_prompt`, `truncate_input`, `predict_labels` parsing, `__INVALID__`
       sentinel, macro/micro F1) from `llm_fine_tuning_LORA_task3.ipynb` into `scripts/task3_metrics.py`.
+      (`truncate_input` was already ported as the harness's `make_trimmer`; labels come from `--labels_file`.)
 - [x] Write `scripts/legal_model_extension.py` with `run` (modes `baseline`, `finetune`, `adapter`) and `compare`
       subcommands, importing only those three modules for prompts and scoring.
-      (T1 and T2 registered; T3 joins the `TASKS` table when its scorer is extracted.)
+      (T1, T2 and T3 registered.)
 - [x] Use the notebooks' quantisation exactly: NF4, 4-bit, **no** double quantisation, compute dtype fp16 (T4 has no bf16).
 - [x] Use the notebooks' training settings exactly (from `train_metrics.json`): 1 epoch, lr 2e-4, weight decay 0.001,
       `paged_adamw_32bit`, LoRA r=16 / α=16 / dropout 0.05 on q/k/v/o, `completion_only_loss=True`, no packing,
       TRL-default scheduler and warmup.
 - [x] Use per-task batching as in the notebooks: T1/T2 batch 1 × accum 8; T3 batch 2 × accum 4 with `group_by_length=True`.
-      (T1 and T2 done; T3 entry added with its scorer.)
+      (All three registered.)
 - [x] Use the notebooks' decoding exactly: greedy, `max_new_tokens` 3 (T1) / 128 (T2) / 16 (T3), max length 1024.
-      (T1 and T2 done.)
+      (All three. T3 uses 16 for every arm; see DESIGN.md for why not the fine-tune notebook's 7.)
 - [x] Port the T3 safeguards into every arm: `embed_tokens`/`lm_head` recast to fp16 after trainer init,
       `generate()` inside `torch.autocast("cuda", dtype=float16)`, `TimeBudgetCallback` at 7 h, pre-flight checks 9 and 10.
       Input-text trimming is applied to every task too — see `docs/extension/DESIGN.md` (Llama T1: 50 train / 6 val affected).
@@ -79,10 +80,12 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [x] Add a `--limit N` argument that evaluates only the first N validation examples, for smoke tests.
       (Also `--train_limit N` for the Phase 6 200-example fine-tune smoke test.)
 - [x] Add a CPU-only unit test `scripts/test_extension_scoring.py` covering valid, invalid and edge-case completions.
-      (T1, T2 + `compare` for both; T3 cases added with its scorer.)
+      (T1, T2, T3 + `compare` for each; 18 tests pass.)
 - [x] Verify locally on CPU that the extracted scorers reproduce the existing `eval_metrics.json` numbers when fed the
       fine-tuned runs' saved predictions (if not saved, check against a hand-built fixture instead).
       T1: predictions were not saved; fixtures rebuilt from both saved confusion matrices reproduce both files exactly.
+      T2: no per-example data saved; n and per-category counts checked instead. T3: rebuilt from saved per-label
+      P/R/support; both runs reproduce exactly.
 
 ## Phase 2 — Pin the environment
 
@@ -144,13 +147,17 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [x] Run the scoring unit tests locally on CPU and fix any failure before using GPU time. (7/7 pass.)
 - [ ] Run `saul` task 3 baseline with `--limit 40` on Kaggle to validate loading, generation and scoring.
       Task-1-first order: run `saul` **task 1** baseline with `LIMIT = 40` first (T3 is not registered in the harness yet).
-      T1 version done 2026-10-05: loading, generation and scoring all OK (see DESIGN.md run log); T3 version still open.
+      T1 version done 2026-10-05: loading, generation and scoring all OK (see DESIGN.md run log). T3: the full
+      zero-shot baseline is run directly instead (no training, so it is no more expensive than a smoke test).
 - [x] Run `saul` task 1 finetune on a 200-example train subset to validate training and adapter reload.
       Done 2026-10-05: pre-flight 9/10 pass, training 13.5 s/step (full epoch ≈ 2.9 h), adapter saved, eval OK
       (0.905 on 200). Eval used the in-memory adapter; reload-from-disk (`adapter` mode) is first exercised in Phase 8.
-- [ ] Log the per-tokenizer instruction token count and provision budget for T3 (Llama: 331-token instruction, 670-token budget).
-- [ ] Compare the smoke-run validation trimming count for Saul task 3 with Llama's logged 9 of 1,945.
-- [ ] If Saul trims far more than Llama, set `--max_seq_len 1536` for every *new* arm, confirm pre-flight check 9 passes, and record why.
+- [x] Log the per-tokenizer instruction token count and provision budget for T3 (Llama: 331-token instruction, 670-token budget).
+      Measured on CPU: Saul 406-token instruction, 584-token budget (DESIGN.md).
+- [x] Compare the smoke-run validation trimming count for Saul task 3 with Llama's logged 9 of 1,945.
+      CPU count with the real tokenizer: Saul 32 / 1,945 val, 210 / 9,801 train (Llama 9 and 79, reproduced exactly).
+- [x] If Saul trims far more than Llama, set `--max_seq_len 1536` for every *new* arm, confirm pre-flight check 9 passes, and record why.
+      Not applied: 1.6 % of validation trimmed; 1024 kept for comparability and the 7 h budget (DESIGN.md).
 
 ## Phase 7 — Zero-shot baselines (about one hour each)
 

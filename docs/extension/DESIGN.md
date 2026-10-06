@@ -96,6 +96,20 @@ because there it is confirmed.
   smaller because the longest gold JSON (a `Parties` list) is 283 / 347 tokens. One validation
   gold answer exceeds `max_new_tokens` = 128 for both tokenizers, so no arm can get it right;
   this ceiling is inherited from the notebooks.
+
+  For T3 the 100-label instruction dominates: 331 tokens for Llama (341 with the template, as in
+  the notebook log) and 406 for Mistral/Saul (424 with the template).
+
+  | Tokenizer | Input budget | Train trimmed | Val trimmed |
+  |---|---:|---:|---:|
+  | Llama-3.1 | 670 | 79 / 9,801 | 9 / 1,945 |
+  | Mistral-7B = Saul-7B | 584 | 210 / 9,801 | 32 / 1,945 |
+
+  The Llama row matches the T3 notebook's log exactly. Saul trims about 3.5× more examples, but
+  only 1.6 % of validation (≤ 1.6 pp of accuracy, in practice far less, because a provision's
+  opening usually names its topic). `max_seq_len` therefore stays 1024 for every arm. The plan's
+  1536 fallback was rejected: it changes the cap relative to the published Llama run, and longer
+  sequences put Saul's T3 fine-tune at risk of the 7 h budget (Llama's T3 fine-tune used 6.1 h of it).
 - Tokenizers: none of the three ships a pad token; all use `pad_token = eos_token`, exactly as the
   Llama notebooks did. Mistral and Saul share a tokenizer, so the headline comparison has no
   tokenization confound.
@@ -115,6 +129,19 @@ because there it is confirmed.
   The T2 runs saved no per-example predictions, so the tests instead check that the repo
   validation set has the saved runs' n (631) and per-category counts, and that a perfect
   prediction scores 1.0 on every metric.
+- T3 keeps the notebooks' rule: the first line of the completion, stripped, must equal a label
+  (case-insensitive), otherwise `__INVALID__`. Metrics use sklearn with `labels=LABELS`, so an
+  invalid answer is a miss and never a false positive. Macro-F1 averages over all 100 labels,
+  including the one label missing from validation (99 / 100 covered), so the scorer needs
+  `labels.json` (`--labels_file` on `run` and `compare`). T3 adds a **lenient** diagnostic,
+  `lenient_valid_label_rate`: the first line *starts with* a label. McNemar uses exact-label
+  accuracy; the bootstrap uses macro-F1. `max_new_tokens` is 16, as in the baseline notebook;
+  the fine-tune notebook used longest label + 2 = 7 for Llama, but Saul's longest label is 8
+  tokens. The parser reads only the first line, so the larger budget does not change a
+  fine-tuned model's answers. The tests rebuild per-example pairs from the saved per-label
+  precision, recall and support. Both saved Llama T3 runs reproduce exactly (accuracy, valid
+  rate, macro- and micro-F1; per-label values to 1e-12, because the local sklearn computes F1 in
+  a different but equivalent form).
 - Timing reference: Llama T1 QLoRA took 30,995 s (8.6 h) in **bf16** on the T4 — over the 7 h
   budget. fp16 should be several times faster; the first Phase 9 run measures it.
 

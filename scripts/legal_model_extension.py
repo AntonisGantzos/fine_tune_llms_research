@@ -40,6 +40,7 @@ from pathlib import Path
 
 import task1_metrics
 import task2_metrics
+import task3_metrics
 
 MODELS = {
     "llama": "meta-llama/Meta-Llama-3.1-8B",
@@ -47,13 +48,16 @@ MODELS = {
     "saul": "Equall/Saul-7B-Base",
 }
 
-# Per-task settings copied from the Llama notebooks. T3 is registered when its scorer is
-# extracted (plan Phase 1).
+# Per-task settings copied from the Llama notebooks. T3's batch 2 x accum 4 + group_by_length
+# (same effective batch of 8) and eval batch 8 are its notebook's speed fixes; T3 also needs
+# --labels_file (LEDGAR labels.json) for parsing and macro-F1.
 TASKS = {
     1: {"metrics": task1_metrics, "batch_size": 1, "grad_accum": 8,
         "group_by_length": False, "eval_batch_size": 1},
     2: {"metrics": task2_metrics, "batch_size": 1, "grad_accum": 8,
         "group_by_length": False, "eval_batch_size": 1},
+    3: {"metrics": task3_metrics, "batch_size": 2, "grad_accum": 4,
+        "group_by_length": True, "eval_batch_size": 8},
 }
 
 SEED = 42
@@ -107,6 +111,16 @@ def make_trimmer(tokenizer, build_prompt, max_seq_len, max_completion_tokens):
     return trim
 
 
+def load_task_metrics(args):
+    """The task's scorer module; T3's needs its 100-label set loaded first."""
+    metrics_mod = TASKS[args.task]["metrics"]
+    if args.task == 3:
+        if not args.labels_file:
+            raise SystemExit("--task 3 needs --labels_file (LEDGAR labels.json)")
+        metrics_mod.load_labels(args.labels_file)
+    return metrics_mod
+
+
 # ----------------------------------------------------------------------------- run
 
 def run(args):
@@ -115,7 +129,7 @@ def run(args):
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
     task = TASKS[args.task]
-    metrics_mod = task["metrics"]
+    metrics_mod = load_task_metrics(args)
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     transformers.set_seed(SEED)
@@ -171,7 +185,7 @@ def run(args):
         "adapter_dir": args.adapter_dir, "seed": SEED,
         "max_seq_len": args.max_seq_len, "max_new_tokens": metrics_mod.MAX_NEW_TOKENS,
         "limit": args.limit, "train_limit": args.train_limit,
-        "train_file": args.train_file, "val_file": args.val_file,
+        "train_file": args.train_file, "val_file": args.val_file, "labels_file": args.labels_file,
         "train_file_sha256_lf": lf_sha256(args.train_file) if args.train_file else None,
         "val_file_sha256_lf": lf_sha256(args.val_file),
         "n_train": len(train_rows), "n_val": len(val_rows),
@@ -470,7 +484,7 @@ def compare(args):
     import numpy as np
     from scipy.stats import binomtest
 
-    metrics_mod = TASKS[args.task]["metrics"]
+    metrics_mod = load_task_metrics(args)
     a = read_jsonl(Path(args.a) / "predictions.jsonl")
     b = read_jsonl(Path(args.b) / "predictions.jsonl")
     assert len(a) == len(b), f"Different number of predictions: {len(a)} vs {len(b)}"
@@ -528,12 +542,14 @@ def main():
     r.add_argument("--max_seq_len", type=int, default=1024)
     r.add_argument("--limit", type=int, help="evaluate only the first N validation examples (smoke test)")
     r.add_argument("--train_limit", type=int, help="train on only the first N examples (smoke test)")
+    r.add_argument("--labels_file", help="task 3: LEDGAR labels.json")
 
     c = sub.add_parser("compare", help="paired McNemar + bootstrap between two run dirs")
     c.add_argument("--task", type=int, choices=sorted(TASKS), required=True)
     c.add_argument("--a", required=True, help="run dir of the reference arm")
     c.add_argument("--b", required=True, help="run dir of the arm compared against A")
     c.add_argument("--out", help="output JSON (default: next to B)")
+    c.add_argument("--labels_file", help="task 3: LEDGAR labels.json")
     c.add_argument("--n_boot", type=int, default=1000)
     c.add_argument("--seed", type=int, default=0)
 
