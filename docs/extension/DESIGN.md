@@ -119,11 +119,25 @@ because there it is confirmed.
 | Saul QLoRA | **0.968** | **0.959** | **0.939** | 71 | harness, fp16 |
 | Llama QLoRA | 0.962 | 0.951 | 0.928 | 85 | original notebook, bf16 |
 
-Saul QLoRA is ahead of Llama QLoRA by 14 examples (0.6 pp accuracy). This is **not yet a tested
-difference**: the Llama numbers come from the notebooks (bf16, sequence truncation on 6 val
-prompts) and have no per-example predictions, so McNemar / bootstrap cannot be run. Re-scoring
-the Llama adapter through the harness (Phase 8) produces matched fp16 predictions for the paired
-`compare`. The contamination caveat above applies to the Saul rows.
+| Llama QLoRA, re-scored | 0.962 | 0.951 | 0.929 | 84 | harness, fp16 (`llama_t1_adapter_adapter1`) |
+
+**Llama re-score (Phase 8, 2026-10-06).** The original adapter evaluated through the harness in fp16
+gives accuracy 0.9620 vs 0.9615 in the notebook (bf16): one more correct example, confusion
+`[[547, 11], [73, 1577]]` vs `[[545, 13], [72, 1578]]`. The bf16→fp16 switch and the input
+trimming of 6 val prompts change essentially nothing. This run was also the first to load a saved
+adapter from disk (`adapter` mode), and it works.
+
+**Paired tests (`compare`, 2,000 bootstrap resamples):**
+
+| A → B | Discordant (only A / only B correct) | McNemar p | Macro-F1 diff B−A, 95% CI |
+|---|---|---:|---|
+| Llama QLoRA → Saul QLoRA | 27 / 40 | 0.142 | +0.007 [−0.002, +0.016] |
+| Saul zero-shot → Saul QLoRA | 60 / 547 | 2.4e-99 | +0.531 [+0.518, +0.543] |
+
+**Conclusion for T1:** fine-tuning is what makes Saul useful (zero-shot it answers "No" to
+everything). After fine-tuning, Saul and Llama are **statistically indistinguishable** on T1:
+Saul is ahead by 13 examples, but p = 0.14 and the macro-F1 CI includes 0. This is not evidence that
+legal pretraining helps here. The contamination caveat above applies to the Saul rows.
 
 ## Canonical data (SHA-256)
 
