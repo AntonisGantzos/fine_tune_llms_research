@@ -237,6 +237,12 @@ are indistinguishable, as on T1. The artefact affects the original Llama T2 resu
 measure digit-string reproduction rather than date extraction). The contamination caveat
 applies to the Saul rows.
 
+### T3 runs
+
+| Date | Run | Result |
+|---|---|---|
+| 2026-10-06 | `saul_t3_baseline` (full, 1,945) | **Valid-label 0.976, accuracy 0.059, macro-F1 0.043, micro-F1 0.060**; lenient valid 0.976. Eval 2,441 s (1.26 s/example, batch 8). 32/1,945 val inputs trimmed (input budget 584), as predicted on CPU. Saul almost always answers with a real label, but it collapses onto a few: "No Defaults" 1,129 times (58 %), "No Waivers" 287, "Assignments" 140, "Adjustments" 105; only 27 distinct labels used. The 47 invalid answers echo the label list (`[No Defaults]`, `[Adjustments, Agreements, ...`) or copy the provision. Compared with Llama zero-shot (notebook, bf16: valid-label 0.40, accuracy 0.065, macro-F1 0.066), Saul has the format but not the classification. Zero-shot, neither model is usable on T3. |
+
 ## Canonical data (SHA-256)
 
 Hashes are of the **LF-normalised** bytes: what git stores and what Kaggle generated.

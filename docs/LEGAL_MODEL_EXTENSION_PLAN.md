@@ -145,7 +145,7 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 ## Phase 6 — Smoke tests (cheap, run before any long job)
 
 - [x] Run the scoring unit tests locally on CPU and fix any failure before using GPU time. (7/7 pass.)
-- [ ] Run `saul` task 3 baseline with `--limit 40` on Kaggle to validate loading, generation and scoring.
+- [x] Run `saul` task 3 baseline with `--limit 40` on Kaggle to validate loading, generation and scoring.
       Task-1-first order: run `saul` **task 1** baseline with `LIMIT = 40` first (T3 is not registered in the harness yet).
       T1 version done 2026-10-05: loading, generation and scoring all OK (see DESIGN.md run log). T3: the full
       zero-shot baseline is run directly instead (no training, so it is no more expensive than a smoke test).
@@ -172,7 +172,8 @@ needs Saul-QLoRA versus Mistral-QLoRA.
       macro-F1 0.43; see DESIGN.md run log.)
 - [x] Run `saul` baseline for task 2.
       (2026-10-06: JSON-valid 0.097, EM 0.000, F1 0.069 — mostly bare arrays and runaway generation; see DESIGN.md.)
-- [ ] Run `saul` baseline for task 3.
+- [x] Run `saul` baseline for task 3.
+      Done 2026-10-06: valid-label 0.976, accuracy 0.059, macro-F1 0.043 (collapses onto "No Defaults").
 - [ ] Optionally run `saul-instruct` with `--chat` on each task, reported separately as non-matched prompts.
 
 ## Phase 8 — Re-score the existing Llama adapters
