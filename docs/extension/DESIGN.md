@@ -109,7 +109,7 @@ because there it is confirmed.
   only 1.6 % of validation (≤ 1.6 pp of accuracy, in practice far less, because a provision's
   opening usually names its topic). `max_seq_len` therefore stays 1024 for every arm. The plan's
   1536 fallback was rejected: it changes the cap relative to the published Llama run, and longer
-  sequences put Saul's T3 fine-tune at risk of the 7 h budget (Llama's T3 fine-tune used 6.1 h of it).
+  sequences put Saul's T3 fine-tune at risk of the training budget (Llama's T3 fine-tune used 6.1 h; see the T3 run log).
 - Tokenizers: none of the three ships a pad token; all use `pad_token = eos_token`, exactly as the
   Llama notebooks did. Mistral and Saul share a tokenizer, so the headline comparison has no
   tokenization confound.
@@ -241,6 +241,7 @@ applies to the Saul rows.
 
 | Date | Run | Result |
 |---|---|---|
+| 2026-10-06 | `saul_t3_finetune_smoke` (`--train_limit 200 --limit 200`) | All pre-flight checks passed: worst-case batch 2 × 1,015 tokens, peak 7.0 GB, projected 7.3 / 15.6 GB; eval-path `generate()` OK. 25 steps in 522 s = **20.9 s/step** (Llama T3: 17.9 s/step). Saul's T3 sequences average 591 tokens vs Llama's 492 (the 100-label instruction is 406 vs 331 tokens), and the first 200 rows are 2 % shorter than the full set, so the full epoch (1,226 steps) projects to **≈ 7.25 h, over the 7 h budget**. Loss 0.560; eval on 200: valid-label 0.93, accuracy 0.63, macro-F1 0.48, 1.46 s/example (≈ 0.8 h for all 1,945). Trimmed 3/200 train, 5/200 val. **Decision: the harness training budget is raised from 7 h to 9 h** (setup ≈ 0.1 h + 9 h + eval ≈ 0.8 h leaves ~2 h of Kaggle's 12 h). It is a safety cap, so no completed run is affected. A partial epoch would have to be rejected under Phase 9, and shortening sequences would change the experiment. |
 | 2026-10-06 | `saul_t3_baseline` (full, 1,945) | **Valid-label 0.976, accuracy 0.059, macro-F1 0.043, micro-F1 0.060**; lenient valid 0.976. Eval 2,441 s (1.26 s/example, batch 8). 32/1,945 val inputs trimmed (input budget 584), as predicted on CPU. Saul almost always answers with a real label, but it collapses onto a few: "No Defaults" 1,129 times (58 %), "No Waivers" 287, "Assignments" 140, "Adjustments" 105; only 27 distinct labels used. The 47 invalid answers echo the label list (`[No Defaults]`, `[Adjustments, Agreements, ...`) or copy the provision. Compared with Llama zero-shot (notebook, bf16: valid-label 0.40, accuracy 0.065, macro-F1 0.066), Saul has the format but not the classification. Zero-shot, neither model is usable on T3. |
 
 ## Canonical data (SHA-256)

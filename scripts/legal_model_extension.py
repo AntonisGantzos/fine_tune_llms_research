@@ -23,7 +23,7 @@ predictions.jsonl (one line per validation example, needed by `compare`), and fo
 
 Every arm runs in fp16 with the T3 notebook's safeguards (see CLAUDE.md, "T3 deviates
 deliberately"): fp16 compute because the T4 has no bf16 tensor cores; embed_tokens/lm_head
-recast to fp16 after trainer init; generate() under fp16 autocast; a 7 h training budget;
+recast to fp16 after trainer init; generate() under fp16 autocast; a 9 h training budget;
 pre-flight checks 9 (worst-case-batch memory probe) and 10 (eval-path generate).
 
 Torch / transformers are imported inside `run` only, so `compare` and the scoring tests
@@ -61,7 +61,10 @@ TASKS = {
 }
 
 SEED = 42
-TRAIN_TIME_BUDGET_S = 7 * 3600   # of Kaggle's 12 h wall; leaves room for save + eval
+# Of Kaggle's 12 h wall. The T3 notebook used 7 h; raised to 9 h because Saul's T3 epoch measures
+# ~7.25 h (its prompts are 20 % longer in tokens than Llama's). 9 h + ~0.8 h eval + ~0.1 h setup
+# still leaves ~2 h of margin. A run that hits it is still flagged stopped_on_time_budget.
+TRAIN_TIME_BUDGET_S = 9 * 3600
 TRIM_SLACK_TOKENS = 8            # EOS appended by TRL + margin, as in the T3 notebook
 
 

@@ -73,7 +73,7 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [x] Use the notebooks' decoding exactly: greedy, `max_new_tokens` 3 (T1) / 128 (T2) / 16 (T3), max length 1024.
       (All three. T3 uses 16 for every arm; see DESIGN.md for why not the fine-tune notebook's 7.)
 - [x] Port the T3 safeguards into every arm: `embed_tokens`/`lm_head` recast to fp16 after trainer init,
-      `generate()` inside `torch.autocast("cuda", dtype=float16)`, `TimeBudgetCallback` at 7 h, pre-flight checks 9 and 10.
+      `generate()` inside `torch.autocast("cuda", dtype=float16)`, `TimeBudgetCallback` at 7 h (raised to 9 h on 2026-10-06, see Phase 9), pre-flight checks 9 and 10.
       Input-text trimming is applied to every task too — see `docs/extension/DESIGN.md` (Llama T1: 50 train / 6 val affected).
 - [x] Set `pad_token = eos_token` when the tokenizer has none (Mistral/Saul ship without one) and log the choice.
 - [x] Write `eval_metrics.json`, `train_metrics.json` and per-example `predictions.jsonl` (needed for paired tests) per run.
@@ -196,6 +196,8 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [x] Fine-tune `saul` on task 1. (2026-10-06: 3.06 h, 1 full epoch; accuracy 0.968, macro-F1 0.959.)
 - [ ] Fine-tune `mistral` on task 3 with the 7-hour time-budget callback (Llama T3 needed 6.1 h of it).
 - [ ] Fine-tune `saul` on task 3 with the 7-hour time-budget callback.
+      Smoke (200 train / 200 val, 2026-10-06): 20.9 s/step → full epoch (1,226 steps) ≈ 7.25 h, over 7 h. The harness
+      budget is raised to 9 h (≈ 0.8 h eval + setup still leaves ~2 h of Kaggle's 12 h), so the epoch completes.
 - [ ] Reject and re-run any run whose `train_metrics.json` shows `stopped_on_time_budget: true`.
 
 ## Phase 10 — Paired comparisons
