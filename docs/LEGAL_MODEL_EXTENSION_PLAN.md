@@ -144,8 +144,9 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [ ] Run `saul` task 3 baseline with `--limit 40` on Kaggle to validate loading, generation and scoring.
       Task-1-first order: run `saul` **task 1** baseline with `LIMIT = 40` first (T3 is not registered in the harness yet).
       T1 version done 2026-10-05: loading, generation and scoring all OK (see DESIGN.md run log); T3 version still open.
-- [ ] Run `saul` task 1 finetune on a 200-example train subset to validate training and adapter reload.
-      Runner set to `MODE="finetune"`, `TRAIN_LIMIT=200`, `LIMIT=200` (first 200 val rows hold 47 positives).
+- [x] Run `saul` task 1 finetune on a 200-example train subset to validate training and adapter reload.
+      Done 2026-10-05: pre-flight 9/10 pass, training 13.5 s/step (full epoch ≈ 2.9 h), adapter saved, eval OK
+      (0.905 on 200). Eval used the in-memory adapter; reload-from-disk (`adapter` mode) is first exercised in Phase 8.
 - [ ] Log the per-tokenizer instruction token count and provision budget for T3 (Llama: 331-token instruction, 670-token budget).
 - [ ] Compare the smoke-run validation trimming count for Saul task 3 with Llama's logged 9 of 1,945.
 - [ ] If Saul trims far more than Llama, set `--max_seq_len 1536` for every *new* arm, confirm pre-flight check 9 passes, and record why.

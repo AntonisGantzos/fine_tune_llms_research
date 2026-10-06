@@ -310,7 +310,7 @@ def finetune(model, tokenizer, train_prompts, train_rows, val_prompts, task, met
         "train_runtime_seconds": result.metrics.get("train_runtime"),
         "train_samples_per_second": result.metrics.get("train_samples_per_second"),
         "global_step": result.global_step,
-        "epochs_completed": result.metrics.get("epoch"),
+        "epochs_completed": trainer.state.epoch,   # not in result.metrics (Trainer adds it only to logs)
         "stopped_on_time_budget": time_budget.stopped_early,
         "train_time_budget_seconds": TRAIN_TIME_BUDGET_S,
         "hyperparameters": {
