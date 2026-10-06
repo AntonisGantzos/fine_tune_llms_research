@@ -39,6 +39,7 @@ import time
 from pathlib import Path
 
 import task1_metrics
+import task2_metrics
 
 MODELS = {
     "llama": "meta-llama/Meta-Llama-3.1-8B",
@@ -46,10 +47,12 @@ MODELS = {
     "saul": "Equall/Saul-7B-Base",
 }
 
-# Per-task settings copied from the Llama notebooks. T2/T3 are registered when their
-# scorers are extracted (plan Phase 1); until then only Task 1 can run.
+# Per-task settings copied from the Llama notebooks. T3 is registered when its scorer is
+# extracted (plan Phase 1).
 TASKS = {
     1: {"metrics": task1_metrics, "batch_size": 1, "grad_accum": 8,
+        "group_by_length": False, "eval_batch_size": 1},
+    2: {"metrics": task2_metrics, "batch_size": 1, "grad_accum": 8,
         "group_by_length": False, "eval_batch_size": 1},
 }
 
@@ -428,7 +431,7 @@ def evaluate(model, tokenizer, val_rows, val_prompts, task, metrics_mod, args, o
                         args.max_seq_len)
         for j, raw in enumerate(raws):
             row = val_rows[i + j]
-            pred, valid = metrics_mod.parse_prediction(raw)
+            pred, valid = metrics_mod.parse_prediction(raw, row["category"])
             predictions.append({"idx": i + j, "category": row["category"], "gold": row["output"],
                                 "raw": raw, "pred": pred, "valid": valid,
                                 "correct": metrics_mod.is_correct(row["output"], pred)})

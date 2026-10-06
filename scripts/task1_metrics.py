@@ -21,8 +21,9 @@ def build_prompt(instruction, input_text):
     return PROMPT_TEMPLATE.format(instruction=instruction, input=input_text)
 
 
-def parse_prediction(raw):
-    """Map a raw 3-token completion to (label, strictly_valid).
+def parse_prediction(raw, category=None):
+    """Map a raw 3-token completion to (label, strictly_valid). `category` is unused here; it
+    is part of the shared scorer interface because T2 needs it.
 
     label: the notebooks' LENIENT rule, kept unchanged so published accuracies reproduce —
         "Yes" if the substring "yes" occurs anywhere (case-insensitive), else "No". So any

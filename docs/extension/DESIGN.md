@@ -90,6 +90,12 @@ because there it is confirmed.
   scored 6 validation prompts that had lost `### Response:`. The harness's Llama T1 numbers can
   therefore differ from the notebook's on at most those 6 validation examples (≤ 0.27 pp).
   Prompts that need no trimming are byte-identical to the notebooks'.
+
+  For T2 (same 1024 cap) trimming is negligible: Llama budget 663 tokens, 0 / 2,454 train and
+  0 / 631 val trimmed; Mistral/Saul budget 587, 1 / 2,454 train and 0 / 631 val. The budgets are
+  smaller because the longest gold JSON (a `Parties` list) is 283 / 347 tokens. One validation
+  gold answer exceeds `max_new_tokens` = 128 for both tokenizers, so no arm can get it right;
+  this ceiling is inherited from the notebooks.
 - Tokenizers: none of the three ships a pad token; all use `pad_token = eos_token`, exactly as the
   Llama notebooks did. Mistral and Saul share a tokenizer, so the headline comparison has no
   tokenization confound.
@@ -98,6 +104,17 @@ because there it is confirmed.
   does not change training.
 - T1 adds a **strict-validity** diagnostic (first line exactly Yes/No). Accuracy keeps the
   notebooks' lenient rule ("yes" anywhere → Yes, else No) so published numbers reproduce.
+- T2 keeps the notebooks' **strict** rule: the whole completion must `json.loads` to
+  `{category: value}`, otherwise it is invalid (EM 0, F1 0). An invalid completion is stored as
+  the `__INVALID__` sentinel, so it is never confused with a valid `null` (which is correct when
+  the gold value is null). T2 adds a **lenient** diagnostic, `lenient_json_valid_rate`: the
+  completion *starts with* a valid object, ignoring trailing text. The gap between the two rates
+  measures "right JSON, didn't stop", which is the expected zero-shot failure for base models
+  (Llama zero-shot JSON-valid 0.47). The raw completions in `predictions.jsonl` let lenient EM/F1
+  be computed later if needed. McNemar uses exact match; the bootstrap uses mean value-F1.
+  The T2 runs saved no per-example predictions, so the tests instead check that the repo
+  validation set has the saved runs' n (631) and per-category counts, and that a perfect
+  prediction scores 1.0 on every metric.
 - Timing reference: Llama T1 QLoRA took 30,995 s (8.6 h) in **bf16** on the T4 — over the 7 h
   budget. fp16 should be several times faster; the first Phase 9 run measures it.
 
