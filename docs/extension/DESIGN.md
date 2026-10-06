@@ -171,6 +171,7 @@ legal pretraining helps here. The contamination caveat above applies to the Saul
 | Llama zero-shot | 0.472 | 0.090 | 0.141 | original notebook, bf16 |
 | Saul QLoRA | 0.995 | **0.724** | **0.853** | harness, fp16 |
 | Llama QLoRA | 0.997 | 0.691 | 0.819 | original notebook, bf16 |
+| Llama QLoRA, re-scored | 0.997 | 0.691 | 0.818 | harness, fp16 (`llama_t2_adapter_adapter2`) |
 
 Per category (EM), Saul QLoRA vs Llama QLoRA (notebook): Agreement Date 0.95 vs 0.84, Effective
 Date 0.91 vs 0.79, Notice Period 0.97 vs 0.93, Governing Law 0.94 vs 0.92; the rest within
@@ -181,8 +182,33 @@ Date 0.91 vs 0.79, Notice Period 0.97 vs 0.93, Governing Law 0.94 vs 0.92; the r
 | A → B | Discordant (only A / only B correct) | McNemar p | F1 diff B−A, 95% CI |
 |---|---|---:|---|
 | Saul zero-shot → Saul QLoRA | 0 / 457 | 5.4e-138 | +0.784 [+0.753, +0.814] |
+| Llama QLoRA (re-scored) → Saul QLoRA | 19 / 40 | 0.0086 | +0.036 [+0.017, +0.056] |
 
-Saul QLoRA vs Llama QLoRA needs the Llama adapter re-scored through the harness (Phase 8, next run).
+**Llama re-score (Phase 8, 2026-10-06).** `llama_t2_adapter_adapter2`: JSON-valid 0.997, EM 0.6910
+(identical to the notebook), F1 0.818 vs 0.819. 0/631 val inputs trimmed; eval 953 s. As for T1,
+the bf16→fp16 switch changes essentially nothing.
+
+**The Saul advantage is confined to the two date categories, and those labels are a preprocessing
+artefact.** `scripts/preprocess_values_cuad.py` (`re.sub(r'[^a-zA-Z0-9\s]', '', text)`) strips
+punctuation from every answer, so CUAD's `5/8/14` becomes the gold `"5814"`; 167 of 171
+Agreement/Effective Date golds are such digit strings. The input still reads e.g. "Nov 02 2019"
+while the gold is `"11219"`, so the model must learn a lossy, sometimes ambiguous
+(`11219` = 11/2/19 or 1/12/19) date→digits rewrite. Mistral/Saul tokenize digits one by one
+(`1 1 2 1 9`), Llama 3 in chunks of up to three (`112 19`), and Llama's date errors are exactly
+digit insertions/drops (gold `11219` → Llama `112219`; `32002` → `3202`).
+
+| Subset | n | Only Llama / only Saul correct | McNemar p | EM Llama / Saul |
+|---|---:|---|---:|---|
+| Agreement + Effective Date | 171 | 2 / 21 | 6.6e-05 | 0.819 / 0.930 |
+| All other categories | 460 | 17 / 19 | 0.87 | 0.643 / 0.648 |
+
+**Conclusion for T2:** fine-tuned Saul beats fine-tuned Llama overall (p = 0.009), but the whole
+difference comes from reproducing punctuation-stripped date strings, which is most plausibly a
+tokenizer effect on a label artefact, not legal knowledge. On the other seven categories the two
+are indistinguishable, as on T1. The artefact affects the original Llama T2 results too
+(the label format is the same in every arm, so the comparison is fair, but the date EM numbers
+measure digit-string reproduction rather than date extraction). The contamination caveat
+applies to the Saul rows.
 
 ## Canonical data (SHA-256)
 
