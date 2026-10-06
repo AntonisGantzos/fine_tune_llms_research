@@ -163,7 +163,8 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [ ] Run `mistral` baseline for task 3.
 - [x] Run `saul` baseline for task 1. (2026-10-06: answers "No" to all 2,208 → accuracy 0.747 = majority rate,
       macro-F1 0.43; see DESIGN.md run log.)
-- [ ] Run `saul` baseline for task 2.
+- [x] Run `saul` baseline for task 2.
+      (2026-10-06: JSON-valid 0.097, EM 0.000, F1 0.069 — mostly bare arrays and runaway generation; see DESIGN.md.)
 - [ ] Run `saul` baseline for task 3.
 - [ ] Optionally run `saul-instruct` with `--chat` on each task, reported separately as non-matched prompts.
 

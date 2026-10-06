@@ -156,6 +156,20 @@ everything). After fine-tuning, Saul and Llama are **statistically indistinguish
 Saul is ahead by 13 examples, but p = 0.14 and the macro-F1 CI includes 0. This is not evidence that
 legal pretraining helps here. The contamination caveat above applies to the Saul rows.
 
+### T2 runs
+
+| Date | Run | Result |
+|---|---|---|
+| 2026-10-06 | `saul_t2_baseline` (full, 631) | **JSON-valid 0.10, EM 0.00, F1 0.07**; lenient JSON-valid 0.24. Eval 2,125 s (3.4 s/example: most completions run to the 128-token cap). 0/631 val inputs trimmed. Failure modes in the raw output: 425/631 start with a bare JSON array (`["SPONSORSHIP AGREEMENT"]`, no object); 93 give a correct-looking object and then keep generating (`\n\n### Instruction: ...`), which the notebooks' strict rule counts as invalid; 52 open a Markdown code fence. Every valid object wraps the value in a list (`{"Document Name": ["X"]}`), which the notebook rule scores EM 0 but F1 1 against a scalar gold, hence Document Name F1 0.39 with EM 0.00. **Format is not the whole story**: a generous re-score for the record only (first object, unwrap one-item lists) gives EM 0.079 / F1 0.087, still below Llama zero-shot under the strict rule. |
+
+### T2 summary so far (validation, n = 631)
+
+| Arm | JSON-valid | EM | F1 | Source |
+|---|---:|---:|---:|---|
+| Saul zero-shot | 0.097 | 0.000 | 0.069 | harness, fp16 |
+| Llama zero-shot | 0.472 | 0.090 | 0.141 | original notebook, bf16 |
+| Llama QLoRA | 0.997 | 0.691 | 0.819 | original notebook, bf16 |
+
 ## Canonical data (SHA-256)
 
 Hashes are of the **LF-normalised** bytes: what git stores and what Kaggle generated.
