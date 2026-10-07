@@ -159,14 +159,18 @@ because there it is confirmed.
 | 2026-10-05 | `saul_t1_finetune_smoke` (`--train_limit 200 --limit 200`) | All pre-flight checks passed: worst-case batch (1,017 tokens) peaks at 6.0 GB, projected 6.1 / 15.6 GB; eval-path `generate()` OK. 25 steps in 338.6 s = **13.5 s/step in fp16** → full T1 epoch (764 steps) ≈ **2.9 h**, inside the 7 h budget (Llama bf16 needed 8.6 h). Loss 0.302. Eval on first 200 val rows (47 positives): accuracy 0.905, Yes-F1 0.82, 100% strictly valid, 0.82 s/example with the adapter → about 30 min for all 2,208. Adapter saved (54.6 MB, base `Equall/Saul-7B-Base`). Trimmed: 2/200 train, 1/200 val. Bug found: `epochs_completed` was `null` (fixed to read `trainer.state.epoch`). |
 | 2026-10-06 | `saul_t1_baseline` (full, 2,208) | **Degenerate: "No" for every example** (no category ever gets a Yes). Accuracy 0.747 = the majority-class rate (1,650 / 2,208), Yes-F1 0.00, **macro-F1 0.43**. 100% strictly valid (raw: "No" 2,119, "no" 35, plus trailing newlines). Eval 882 s (0.40 s/example). 8/2,208 val inputs trimmed, as predicted on CPU. For comparison, Llama zero-shot (notebook, bf16): accuracy 0.561, macro-F1 0.535, Yes-recall 0.65. **Saul's higher accuracy is not a better model**: on this imbalanced set "always No" scores 0.747, so T1 zero-shot arms must be compared on macro-F1 (what `compare` bootstraps), not accuracy. |
 | 2026-10-06 | `saul_t1_finetune` (full: 6,106 train, 2,208 val) | Pre-flight checks all OK (peak 6.0 GB, projected 6.1 / 15.6 GB). 764 steps, 1.0 epoch, **3.06 h** (about 14 s/step), not stopped on budget. Final loss 0.088. **Accuracy 0.968, macro-F1 0.959**, Yes P/R/F1 0.901 / 0.980 / 0.939, confusion `[[547, 11], [60, 1590]]`, 100% strictly valid. Eval 1,896 s (0.86 s/example). 73 train / 8 val inputs trimmed. |
+| 2026-10-07 | `mistral_t1_baseline` (full, 2,208) | Download 1.0 min (14.5 GB bf16), load 0.6 min, eval 1,249 s (0.57 s/example). **Not degenerate, unlike Saul:** answers Yes 591 times (Yes P/R/F1 0.365 / 0.387 / 0.376). Accuracy 0.675, **macro-F1 0.578**, confusion `[[216, 342], [375, 1275]]`. Strict-valid 0.987: 29 answers were "\n\`\`\`" (the model starts a code block), which the notebook's lenient parse reads as "No" — all 29 happened to be gold "No". 8/2,208 val inputs trimmed, same as Saul (identical tokenizer). |
+| 2026-10-07 | `mistral_t1_finetune` (full: 6,106 train, 2,208 val) | Pre-flight checks all OK (peak 6.0 GB, projected 6.1 / 15.6 GB — same as Saul). 764 steps, 1.0 epoch, **2.98 h** (about 14 s/step), not stopped on budget. Final loss 0.106 (Saul 0.088). **Accuracy 0.972, macro-F1 0.964**, Yes P/R/F1 0.915 / 0.980 / 0.946, confusion `[[547, 11], [51, 1599]]`, 100% strictly valid. Eval 1,853 s. 73 train / 8 val inputs trimmed, same as Saul. |
 
 ### T1 summary so far (validation, n = 2,208)
 
 | Arm | Accuracy | Macro-F1 | Yes-F1 | Errors | Source |
 |---|---:|---:|---:|---:|---|
 | Saul zero-shot | 0.747 | 0.428 | 0.000 | 558 | harness, fp16 |
+| Mistral zero-shot | 0.675 | 0.578 | 0.376 | 717 | harness, fp16 |
 | Llama zero-shot | 0.561 | 0.535 | 0.426 | 969 | original notebook, bf16 |
-| Saul QLoRA | **0.968** | **0.959** | **0.939** | 71 | harness, fp16 |
+| Saul QLoRA | 0.968 | 0.959 | 0.939 | 71 | harness, fp16 |
+| Mistral QLoRA | **0.972** | **0.964** | **0.946** | 62 | harness, fp16 |
 | Llama QLoRA | 0.962 | 0.951 | 0.928 | 85 | original notebook, bf16 |
 
 | Llama QLoRA, re-scored | 0.962 | 0.951 | 0.929 | 84 | harness, fp16 (`llama_t1_adapter_adapter1`) |
@@ -183,11 +187,29 @@ adapter from disk (`adapter` mode), and it works.
 |---|---|---:|---|
 | Llama QLoRA → Saul QLoRA | 27 / 40 | 0.142 | +0.007 [−0.002, +0.016] |
 | Saul zero-shot → Saul QLoRA | 60 / 547 | 2.4e-99 | +0.531 [+0.518, +0.543] |
+| Mistral zero-shot → Saul zero-shot | 216 / 375 | 6.2e-11 | −0.151 [−0.175, −0.127] |
+| Mistral QLoRA → Saul QLoRA | 24 / 15 | 0.200 | −0.005 [−0.012, +0.002] |
+| Mistral zero-shot → Mistral QLoRA | 32 / 687 | 3.7e-161 | +0.385 [+0.363, +0.410] |
+| Llama QLoRA → Mistral QLoRA | 20 / 42 | 0.0071 | +0.012 [+0.004, +0.021] |
+
+**Mistral vs Saul zero-shot (legal pretraining without fine-tuning).** Saul's higher accuracy (more
+correct examples: 375 vs 216 discordant) is entirely the majority class: it answers "No" to everything.
+On macro-F1, the metric that counts both classes, plain Mistral is clearly better (0.578 vs 0.428, CI
+excludes 0). So, zero-shot, legal pretraining made the same architecture *worse* at this task: Saul
+lost the ability to say "Yes" at all, whereas Mistral discriminates weakly (Yes-recall 0.39).
 
 **Conclusion for T1:** fine-tuning is what makes Saul useful (zero-shot it answers "No" to
 everything). After fine-tuning, Saul and Llama are **statistically indistinguishable** on T1:
 Saul is ahead by 13 examples, but p = 0.14 and the macro-F1 CI includes 0. This is not evidence that
 legal pretraining helps here. The contamination caveat above applies to the Saul rows.
+
+**With the Mistral control (2026-10-07).** The headline legal-pretraining test, Saul QLoRA vs Mistral
+QLoRA (same architecture, tokenizer, data, prompts and training), is a **tie leaning towards plain
+Mistral**: Mistral is right on 9 more examples (24 vs 15 discordant, p = 0.20) and the macro-F1
+difference, −0.005 [−0.012, +0.002], includes 0. Legal pretraining therefore gives no measurable gain on
+T1 after fine-tuning, and zero-shot it hurts (all-"No" collapse). Mistral QLoRA is the best T1 model and
+the only one significantly ahead of Llama QLoRA (p = 0.007, CI excludes 0); with several pairwise tests on
+the same data, that p-value is modest evidence, not a strong one.
 
 ### T2 runs
 
