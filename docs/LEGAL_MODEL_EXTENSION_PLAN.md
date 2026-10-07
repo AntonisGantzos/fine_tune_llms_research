@@ -29,6 +29,14 @@ compare all arms in a 3×2 grid: {Llama, Mistral, Saul} × {zero-shot, QLoRA}.
 Saul only, Task 1 first; Mistral arms deferred. Consequence: results rank Saul against Llama but cannot
 attribute differences to legal pretraining (see `docs/extension/DESIGN.md`, "Current scope").
 
+### Scope update (2026-10-07) — Mistral arms re-enabled
+
+All Saul arms are done. Mistral now runs the same sequence, one task at a time: T1 baseline → T1 fine-tune →
+T2 baseline → T2 fine-tune → T3 baseline → T3 fine-tune, each followed by its paired comparisons. Mistral's
+tokenizer is identical to Saul's (same 32k vocabulary and special tokens; identical token ids on every
+validation row of all three tasks, checked on CPU), so Saul's trim counts and step timings carry over and the
+Phase 6 pipeline smoke tests are not repeated. Finally a notebook compares the three fine-tuned models (Phase 11).
+
 ### Is fine-tuning Saul required?
 
 Yes. Saul-7B-Base is a *base* model: domain pretraining improves legal representations, not
@@ -191,11 +199,14 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 ## Phase 9 — QLoRA fine-tunes (one Kaggle session each)
 
 - [ ] Fine-tune `mistral` on task 2 first, as the shortest run, to confirm timing estimates.
+      Superseded (2026-10-07): Mistral follows Saul's task order (T1, T2, T3); timing is known from Saul's
+      identical-tokenizer runs (T1 3.06 h, T2 0.99 h, T3 5.79 h).
 - [x] Fine-tune `saul` on task 2.
       (2026-10-06: 0.99 h; JSON-valid 0.995, EM 0.724, F1 0.853.)
 - [ ] Fine-tune `mistral` on task 1.
 - [x] Fine-tune `saul` on task 1. (2026-10-06: 3.06 h, 1 full epoch; accuracy 0.968, macro-F1 0.959.)
 - [ ] Fine-tune `mistral` on task 3 with the 7-hour time-budget callback (Llama T3 needed 6.1 h of it).
+      (Budget is now 9 h, as for Saul T3.)
 - [x] Fine-tune `saul` on task 3 with the 7-hour time-budget callback.
       Smoke (200 train / 200 val, 2026-10-06): 20.9 s/step → full epoch (1,226 steps) ≈ 7.25 h, over 7 h. The harness
       budget is raised to 9 h (≈ 0.8 h eval + setup still leaves ~2 h of Kaggle's 12 h), so the epoch completes.
@@ -222,6 +233,9 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 ## Phase 11 — Analysis notebook
 
 - [ ] Create `extension_comparison.ipynb` loading the merged CSV from `kaggle_output_extension/`.
+- [ ] Add a section comparing the evaluation results of the three fine-tuned models (Llama-adapter, Mistral-finetune,
+      Saul-finetune) on every task: headline metrics with 95% CIs, the three pairwise McNemar / bootstrap tests,
+      and per-category (T1/T2) and per-label (T3) breakdowns.
 - [ ] Add a headline table per task: six arms, validity gate, headline metric, 95% CI.
 - [ ] Add a validity-versus-content chart separating format gains from content gains for tasks 2 and 3.
 - [ ] Add a task-3 per-label F1 comparison of Saul-finetune versus Mistral-finetune.

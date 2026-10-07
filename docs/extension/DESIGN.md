@@ -24,6 +24,12 @@ cannot attribute a difference to legal pretraining, because Saul and Llama also 
 model, size, tokenizer and pretraining data. Zero-shot Saul is never compared against fine-tuned
 Llama: that would mostly measure answer-format adherence, not legal knowledge.
 
+**Scope update (2026-10-07): Mistral arms re-enabled.** All Saul arms are done; Mistral now runs the
+same sequence (T1 baseline → T1 fine-tune → T2 → T3). Checked on CPU: Mistral-7B-v0.1's tokenizer is
+identical to Saul's (same 32,000-token vocabulary, `<s>` / `</s>`, no pad token, and identical token ids
+on all 2,208 / 631 / 1,945 validation rows). So every Saul trim count, prompt budget and step count applies
+to Mistral unchanged, and the Phase 6 pipeline smoke tests are not repeated.
+
 **Headline comparison:** Saul-QLoRA vs Mistral-QLoRA (same architecture and tokenizer, so
 any difference comes from the legal pretraining). Zero-shot arms show how much of the gap is
 format adherence vs domain knowledge.
