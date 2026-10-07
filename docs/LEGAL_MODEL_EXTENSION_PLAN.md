@@ -206,9 +206,13 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [x] Fine-tune `saul` on task 2.
       (2026-10-06: 0.99 h; JSON-valid 0.995, EM 0.724, F1 0.853.)
 - [x] Fine-tune `mistral` on task 1. (2026-10-07: 2.98 h, 1 full epoch; accuracy 0.972, macro-F1 0.964.)
+- [x] Fine-tune `mistral` on task 2. (2026-10-07: 1.06 h, 1 full epoch; JSON-valid 0.995, EM 0.718, F1 0.850.)
 - [x] Fine-tune `saul` on task 1. (2026-10-06: 3.06 h, 1 full epoch; accuracy 0.968, macro-F1 0.959.)
 - [ ] Fine-tune `mistral` on task 3 with the 7-hour time-budget callback (Llama T3 needed 6.1 h of it).
-      (Budget is now 9 h, as for Saul T3.)
+      (Budget is now 9 h, as for Saul T3.) Run before the Mistral T3 baseline (user's choice, 2026-10-07).
+      Estimate from Saul T3 (identical tokenizer: 1,226 steps at 17.0 s/step = 5.79 h; Mistral ran −3 % / +7 %
+      of Saul's step time on T1 / T2): training ≈ 5.8 h (5.6–6.2 h), eval ≈ 37 min, setup ≈ 10 min →
+      **≈ 6.6 h total (6.4–7.0 h)**, inside the 9 h budget and Kaggle's 12 h wall.
 - [x] Fine-tune `saul` on task 3 with the 7-hour time-budget callback.
       Smoke (200 train / 200 val, 2026-10-06): 20.9 s/step → full epoch (1,226 steps) ≈ 7.25 h, over 7 h. The harness
       budget is raised to 9 h (≈ 0.8 h eval + setup still leaves ~2 h of Kaggle's 12 h), so the epoch completes.
@@ -224,9 +228,13 @@ needs Saul-QLoRA versus Mistral-QLoRA.
       fence-tolerant diagnostic reverses it (EM Mistral 0.209 vs Saul 0.084) — see DESIGN.md.
 - [ ] Run `compare` Saul-finetune versus Mistral-finetune for each task, the headline legal-pretraining comparison.
       T1 done: 24 vs 15 discordant (Mistral / Saul), p = 0.20, macro-F1 Saul − Mistral −0.005 [−0.012, +0.002] → no significant difference.
+      T2 done: 9 vs 13, p = 0.52, F1 diff +0.003 [−0.008, +0.013] → no significant difference; Mistral shares Saul's
+      date advantage over Llama, so that gap is the tokenizer, not legal pretraining.
 - [ ] Run `compare` Mistral-finetune versus Mistral-baseline and versus Llama-adapter for each task (needed for the
       three-fine-tuned-model comparison in Phase 11).
       T1 done: vs baseline p = 3.7e-161, macro-F1 +0.385; vs Llama 20 / 42 discordant, p = 0.0071, macro-F1 +0.012 [+0.004, +0.021].
+      T2 done: vs baseline 0 / 453, p = 8.6e-137, F1 +0.850; vs Llama 20 / 37, p = 0.033, F1 +0.033 [+0.015, +0.053]
+      (dates only: 3 / 21 on dates, 17 / 16 elsewhere).
 - [x] Run `compare` Saul-finetune versus Llama-adapter for each task, the best-model comparison.
       T1 done: 27 vs 40 discordant, McNemar p = 0.142, macro-F1 diff +0.007 [−0.002, +0.016] → no significant difference.
       T2 done: 19 vs 40, p = 0.0086, F1 diff +0.036 [+0.017, +0.056] → Saul better, but only on the two date

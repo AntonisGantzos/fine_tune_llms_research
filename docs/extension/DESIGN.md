@@ -218,6 +218,7 @@ the same data, that p-value is modest evidence, not a strong one.
 | 2026-10-06 | `saul_t2_baseline` (full, 631) | **JSON-valid 0.10, EM 0.00, F1 0.07**; lenient JSON-valid 0.24. Eval 2,125 s (3.4 s/example: most completions run to the 128-token cap). 0/631 val inputs trimmed. Failure modes in the raw output: 425/631 start with a bare JSON array (`["SPONSORSHIP AGREEMENT"]`, no object); 93 give a correct-looking object and then keep generating (`\n\n### Instruction: ...`), which the notebooks' strict rule counts as invalid; 52 open a Markdown code fence. Every valid object wraps the value in a list (`{"Document Name": ["X"]}`), which the notebook rule scores EM 0 but F1 1 against a scalar gold, hence Document Name F1 0.39 with EM 0.00. **Format is not the whole story**: a generous re-score for the record only (first object, unwrap one-item lists) gives EM 0.079 / F1 0.087, still below Llama zero-shot under the strict rule. |
 | 2026-10-06 | `saul_t2_finetune` (full: 2,454 train, 631 val) | Pre-flight checks all OK (worst-case batch 757 tokens, peak 5.7 GB, projected 5.8 / 15.6 GB). 307 steps, 1.0 epoch, **0.99 h** (11.6 s/step), not stopped on budget. Final loss 0.185. **JSON-valid 0.995, EM 0.724, F1 0.853**; lenient JSON-valid also 0.995 (it always stops after the object now). The 3 invalid outputs are long `Parties` answers cut off by the 128-token cap before the JSON closed. Weakest categories are the same as Llama's: Parties EM 0.19 (F1 0.89), Expiration Date 0.40, Renewal Term 0.56. Eval 1,381 s (2.2 s/example). 1 train / 0 val inputs trimmed. |
 | 2026-10-07 | `mistral_t2_baseline` (full, 631) | **Strict JSON-valid 0.005, EM 0.000, F1 0.000**; lenient JSON-valid 0.41. Eval 4,921 s (7.8 s/example: every completion runs to the 128-token cap). 0/631 val inputs trimmed. **Format failure, not content failure**: almost every completion is a well-formed `{category: value}` object, but 383/631 wrap it in a Markdown code fence (```` ```\n{...}\n``` ````, which also defeats the lenient parse) and all of them keep generating afterwards (`### Explanation:` or a new `### Input:` / `### Response:` pair). Diagnostic re-score for the record only, *not* the official metric (first object after an optional fence, one-item lists unwrapped): **valid 0.990, EM 0.209, F1 0.328** — above Llama zero-shot's strict 0.090 / 0.141. The same re-score gives Saul zero-shot valid 0.301, EM 0.084, F1 0.092. |
+| 2026-10-07 | `mistral_t2_finetune` (full: 2,454 train, 631 val) | Pre-flight checks all OK (worst-case batch 757 tokens, peak 5.7 GB — same as Saul). 307 steps, 1.0 epoch, **1.06 h** (12.5 s/step), not stopped on budget. Final loss 0.182 (Saul 0.185). **JSON-valid 0.995, EM 0.718, F1 0.850**; lenient JSON-valid 0.995. The 3 invalid outputs are, as for Saul, long `Parties` answers cut off by the 128-token cap (two are repetition loops). Per-category EM within ±0.05 of Saul everywhere (Agreement Date 0.95, Effective Date 0.90, Parties 0.16). Eval 1,331 s. 1 train / 0 val inputs trimmed. |
 
 ### T2 summary so far (validation, n = 631)
 
@@ -227,6 +228,7 @@ the same data, that p-value is modest evidence, not a strong one.
 | Mistral zero-shot | 0.005 | 0.000 | 0.000 | harness, fp16 |
 | Llama zero-shot | 0.472 | 0.090 | 0.141 | original notebook, bf16 |
 | Saul QLoRA | 0.995 | **0.724** | **0.853** | harness, fp16 |
+| Mistral QLoRA | 0.995 | 0.718 | 0.850 | harness, fp16 |
 | Llama QLoRA | 0.997 | 0.691 | 0.819 | original notebook, bf16 |
 | Llama QLoRA, re-scored | 0.997 | 0.691 | 0.818 | harness, fp16 (`llama_t2_adapter_adapter2`) |
 
@@ -241,6 +243,9 @@ Date 0.91 vs 0.79, Notice Period 0.97 vs 0.93, Governing Law 0.94 vs 0.92; the r
 | Saul zero-shot → Saul QLoRA | 0 / 457 | 5.4e-138 | +0.784 [+0.753, +0.814] |
 | Llama QLoRA (re-scored) → Saul QLoRA | 19 / 40 | 0.0086 | +0.036 [+0.017, +0.056] |
 | Mistral zero-shot → Saul zero-shot | 0 / 0 | 1.0 | +0.069 [+0.050, +0.089] |
+| Mistral QLoRA → Saul QLoRA | 9 / 13 | 0.52 | +0.003 [−0.008, +0.013] |
+| Mistral zero-shot → Mistral QLoRA | 0 / 453 | 8.6e-137 | +0.850 [+0.823, +0.875] |
+| Llama QLoRA (re-scored) → Mistral QLoRA | 20 / 37 | 0.033 | +0.033 [+0.015, +0.053] |
 
 **Mistral vs Saul zero-shot on T2.** Under the official strict rule neither gets a single exact match,
 so McNemar has nothing to test; Saul's small F1 edge comes only from the ~10 % of its answers that are a
@@ -275,6 +280,19 @@ are indistinguishable, as on T1. The artefact affects the original Llama T2 resu
 (the label format is the same in every arm, so the comparison is fair, but the date EM numbers
 measure digit-string reproduction rather than date extraction). The contamination caveat
 applies to the Saul rows.
+
+**With the Mistral control (2026-10-07) — the tokenizer explanation is confirmed.** Plain Mistral, with
+no legal pretraining but the same digit-by-digit tokenizer, gets the *same* date advantage over Llama,
+and is indistinguishable from Saul on both subsets:
+
+| Subset | n | Only Llama / only Mistral | p | Only Saul / only Mistral | p | EM Llama / Saul / Mistral |
+|---|---:|---|---:|---|---:|---|
+| Agreement + Effective Date | 171 | 3 / 21 | 0.0003 | 1 / 0 | 1.0 | 0.819 / 0.930 / 0.924 |
+| All other categories | 460 | 17 / 16 | 1.0 | 12 / 9 | 0.66 | 0.643 / 0.648 / 0.641 |
+
+So the Saul-over-Llama T2 gap belongs to the Mistral tokenizer, not to legal pretraining. The headline
+legal-pretraining test (Saul QLoRA vs Mistral QLoRA) is a tie: 9 / 13 discordant, p = 0.52, F1 diff
++0.003 [−0.008, +0.013].
 
 ### T3 runs
 
