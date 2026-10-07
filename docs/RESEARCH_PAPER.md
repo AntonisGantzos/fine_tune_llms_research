@@ -8,8 +8,6 @@
 
 This study asks whether a general-purpose open-weight large language model can be adapted to three legal contract-review tasks using only free, consumer-grade compute. One base checkpoint, Meta-Llama-3.1-8B, was fine-tuned separately per task with QLoRA (4-bit NF4 quantisation plus a rank-16 LoRA adapter) on a single Kaggle Tesla T4. The tasks were binary risk-clause recognition and nine-category JSON entity extraction, both from CUAD, and 100-way provision classification from LexGLUE's LEDGAR. Each adapter was scored against the identical un-adapted base model on the same held-out validation examples, prompts and decoding settings. Fine-tuning improved macro-F1 from .536 to .951 (task 1), token-F1 from .141 to .819 (task 2) and macro-F1 from .066 to .751 (task 3). Much of the gain is output-format compliance rather than legal comprehension: valid-output rates rose from .472 to .997 and .401 to .996. Results are single-run, single-seed, validation-only.
 
-*(150-word limit; 140 words.)*
-
 ---
 
 ## 2. Literature Review
@@ -22,21 +20,21 @@ This study asks whether a general-purpose open-weight large language model can b
 
 ### 3.0 Framing and scope
 
-The project treats contract review as three *generative* tasks rather than three classifier heads. In every case the model is shown an instruction and a piece of contract text, and must *write* the answer — the string `Yes`, a JSON object, or a label string. That choice is deliberate and has a cost that the evaluation is designed to expose: a generative model can fail by producing the wrong answer *or* by producing something that is not an answer at all. Sections 4.1 and 4.2 keep those two failure types separate throughout.
+The project treats contract review as three generative tasks rather than three classifier heads. In every case the model is shown an instruction and a piece of contract text, and must write the answer — the string `Yes`, a JSON object, or a label string. That choice is deliberate and has a cost that the evaluation is designed to expose: a generative model can fail by producing the wrong answer or by producing something that is not an answer at all. Sections 4.1 and 4.2 keep those two failure types separate throughout.
 
-Three constraints shaped every design decision and should be read as part of the method :
+Three constraints shaped every design decision and should be read as part of the core methodology :
 
-1. **No local GPU.** Editing happens on a CPU-only Windows machine; all model loading and training happens remotely on Kaggle's free accelerator as a *batch* job (where the notebook is pushed to kaggle and run in that environment using kaggle's GPU access. The artifacts acquired from training are then pulled to the repository comprising this research). There is no interactive remote session, so a mistake costs a whole run.
-2. **A 12-hour wall-clock kill** on Kaggle kernels, and a single **Tesla T4** (16 GB, compute capability 7.5) after pinning to one of the two offered GPUs.
+1. **No local GPU.**: Editing happens on a CPU-only Windows machine; all model loading and training happens remotely on Kaggle's free accelerator as a *batch* job (where the notebook is pushed to kaggle and run in that environment using kaggle's GPU access. The artifacts acquired from training are then pulled to the repository comprising this research). There is no interactive remote session, so a mistake costs a whole run.
+2. **A 12-hour wall-clock kill**: on Kaggle kernels, and a single **Tesla T4** (16 GB, compute capability 7.5) after pinning to one of the two offered GPUs.
 3. **Free-tier reproducibility**: everything a run produced — metrics, hyperparameters, generated data, logs — is written to files and pulled back, because terminal output from a remote batch job is lost.
 
 ### 3.1 Analysis of the datasets used in this research
 
 Two public, expert-annotated legal corpora are used. Neither was collected for this project, which matters, as it means the labels are not self-generated and the comparison to published work is meaningful.
 
-#### 3.1.1 CUAD — Contract Understanding Atticus Dataset (tasks 1 and 2)
+#### 3.1.1 CUAD — Contract Understanding Atticus Dataset
 
-CUAD was built by legal experts at The Atticus Project and released as a NeurIPS Datasets & Benchmarks paper (Hendrycks et al., 2021). It contains 13,101 expert annotations across 41 clause categories drawn from 510 commercial contracts, and the published task is extractive: highlight the spans of a contract a lawyer would need to review.
+This dataset was used specifically for tasks 1 and 2. CUAD was built by legal experts at The Atticus Project and released as a NeurIPS Datasets & Benchmarks paper (Hendrycks et al., 2021). It contains 13,101 expert annotations across 41 clause categories drawn from 510 commercial contracts, and the published task is extractive: highlight the spans of a contract a lawyer would need to review.
 
 This project does **not** use CUAD's extractive SQuAD-format file (`CUAD_v1.json`). It uses the flat summary table `master_clauses.csv`, verified in this repository as **510 rows × 83 columns**. The 83 columns are structured as paired columns per category:
 
@@ -45,30 +43,32 @@ This project does **not** use CUAD's extractive SQuAD-format file (`CUAD_v1.json
 
 Two consequences follow directly from that layout and drive the whole data design:
 
-- **"Absent" rows carry no text.** When a category is absent from a contract, the context column is empty or holds a placeholder. A model trained on raw CUAD could therefore reach high accuracy on a Yes/No task by learning "short or empty input → No", never reading legal language at all. Task 1 closes this with hard negatives (§3.3.2), after the preprocessing described in §3.2.
+- **"Absent" rows carry no text.**: When a category is absent from a contract, the context column is empty or holds a placeholder. A model trained on raw CUAD could therefore reach high accuracy on a Yes/No task by learning "short or empty input → No", never reading legal language at all. Task 1 closes this with hard negatives (§3.3.2), after the preprocessing described in §3.2.
 
-- **Ground truth is *normalised*, not quoted.** The `-Answer` column holds the expert's canonical value (e.g. a date rendered as `5/8/14`), not the sentence it was lifted from. Task 2 is therefore a *normalisation* task, not a span-copying task. This point is mentioned because it actively changes how its exact-match score should be read (§4.1.2). This researches own preprocessing then normalises that value a *second* time, to `5814`, which turns out to matter a great deal; §3.2.2 documents it and §4.2.2 reads the consequences.
+- **Ground truth is normalised, not quoted.**: The `-Answer` column holds the expert's canonical value (e.g. a date rendered as `5/8/14`), not the sentence it was lifted from. Task 2 is therefore a normalisation task, not a span-copying task. This point is mentioned because it changes how its exact-match score should be read (analyzed in section 4.1.2). This researches own preprocessing then normalises that value a second time, to `5814`, which turns out to matter a great deal. Section 3.2.2 documents it and section 4.2.2 reads the consequences.
 
-A preprocessing script within the repository of this research (`scripts/preprocess_values_cuad.py`) produces `master_clauses_cleaned.csv` (also 510 rows × 83 columns), the version both training notebooks read. The raw contract PDFs and plain-text files shipped with CUAD are intentionally unused, as full contracts exceed the model's practical prompt budget, and the CSV already holds the extracted clauses in a structured and more-easily read format.
+A preprocessing script within the repository of this research  produces `master_clauses_cleaned.csv` (also 510 rows × 83 columns), the version both training notebooks read. The raw contract PDFs and plain-text files shipped with CUAD are intentionally unused, as full contracts exceed the model's practical prompt budget, and the CSV already holds the extracted clauses in a structured and more-easily read format.
 
-CUAD ships **no official train/test split**, so one had to be constructed; §3.3.2 explains why it is made at the contract level.
+CUAD ships **no official train/test split**, so one had to be constructed. Section 3.3.2 explains why it is made at the contract level.
 
-#### 3.1.2 LEDGAR via LexGLUE (task 3)
+#### 3.1.2 LEDGAR via LexGLUE
 
-LEDGAR is a large multi-label corpus of contract provisions scraped from U.S. Securities and Exchange Commission filings (Tuggener et al., 2020). The raw corpus has thousands of noisy, long-tailed labels, so this project uses the **LexGLUE** redistribution instead (Chalkidis et al., 2022), which keeps the 100 most frequent labels, makes the task single-label multi-class, and ships fixed splits of **60,000 train / 10,000 validation / 10,000 test** examples.
+This dataset is used only for task 3. LEDGAR is a large multi-label corpus of contract provisions scraped from U.S. Securities and Exchange Commission filings (Tuggener et al., 2020). The raw corpus has thousands of noisy, long-tailed labels, so this project uses the **LexGLUE** redistribution instead (Chalkidis et al., 2022), which keeps the 100 most frequent labels, makes the task single-label multi-class, and ships fixed splits of **60,000 train / 10,000 validation / 10,000 test** examples.
 
-Using LexGLUE rather than raw LEDGAR buys two things: a clean, standard label set, and a published yardstick — Chalkidis et al. (2022) report BERT at roughly 87.6 micro-F1 / 81.8 macro-F1 and Legal-BERT at roughly 88.5 / 82.4 on this exact configuration.
+Using LexGLUE rather than raw LEDGAR buys two things: 
+- A clean, standard label set.
+- A published yardstick — Chalkidis et al. (2022) report BERT at roughly 87.6 micro-F1 / 81.8 macro-F1 and Legal-BERT at roughly 88.5 / 82.4 on this exact configuration.
 
 Exploratory analysis of the LexGLUE LEDGAR splits produced four findings that each changed a design decision:
 
 | Finding | Measurement | Decision it forced |
 | :--- | :--- | :--- |
-| **Severe class imbalance** | Most frequent label *Governing Laws* has 3,167 training examples; rarest, *Books*, has 23 — a 137× gap. Median ≈ 426. | Headline metric is **macro-F1**, not accuracy; training data is **stratified down** to a near-uniform per-label count. |
+| **Severe class imbalance** | Most frequent label *Governing Laws* has 3,167 training examples; rarest, *Books*, has 23 — a 137× gap. Median is around 426. | Headline metric is **macro-F1**, not accuracy. Training data is **stratified down** to a near-uniform per-label count. |
 | **Provisions are short** | Median 104 tokens, 90th percentile 290, 99th percentile 585, longest 1,749 (real Llama-3.1 tokenizer). Only 26 of 70,000 provisions exceed 1,024 tokens unaided. | `max_length = 1024` is thus sufficient and no long-context model needed. |
-| **The instruction is large** | The 100-label menu is **331 tokens**; with the `### Instruction / ### Input / ### Response` scaffolding, **341 tokens** of fixed overhead per prompt (confirmed in the production run log: *"Prompt budget: 341 instruction+template tokens + 670 provision tokens + ≤ 5 label tokens ≤ 1024"*). | The menu is kept in full — it is what makes the base-model baseline fair — and the *provision text* is trimmed to fit, never the assembled prompt. |
+| **The instruction is large** | The 100-label menu is **331 tokens**; with the `### Instruction / ### Input / ### Response` scaffolding, **341 tokens** of fixed overhead per prompt. | The menu is kept in full to make the base-model baseline fair and the *provision text* is trimmed to fit, never the assembled prompt. |
 | **Some labels are near-synonyms** | e.g. *Governing Laws* / *Jurisdictions*, *Assigns* / *Successors*, *Amendments* / *Modifications*, *Waivers* / *No Waivers*. | Evaluation reports a **top-confusions** table, so a confusion between look-alikes can be distinguished from a random error. |
 
-One genuine wrinkle: **all 100 labels appear in LexGLUE's train and test splits, but `Books` is absent from the validation split.** The project kept the official splits (the reason the published yardstick is comparable) and relaxed its own sanity check to require full 100-label coverage in *train only*. §5.1 quantifies the small metric artifact this creates.
+One canveat worth noting is that **all 100 labels appear in LexGLUE's train and test splits, but `Books` is absent from the validation split.** The project kept the official splits and relaxed its own sanity check to require full 100-label coverage in train only. Section 5.1 quantifies the small metric artifact this creates.
 
 #### 3.1.3 Processed training data 
 
@@ -76,11 +76,11 @@ All counts below were recomputed directly from the JSONL files the runs themselv
 
 | Task | Source | Train examples | Validation examples | Categories / labels | Label balance |
 | :--- | :--- | ---: | ---: | ---: | :--- |
-| T1 Risk clause recognition | CUAD cleaned CSV | **6,106** | **2,208** | 32 | Train balanced **3,053 Yes / 3,053 No**; validation untouched at **558 Yes / 1,650 No** (25.3% positive) |
+| T1 Risk clause recognition | CUAD cleaned CSV | **6,106** | **2,208** | 32 | Train balanced **3,053 Yes / 3,053 No**; validation  split at **558 Yes / 1,650 No** |
 | T2 Entity extraction | CUAD cleaned CSV | **2,454** | **631** | 9 | n/a (free-form values) |
-| T3 Provision classification | LexGLUE LEDGAR | **9,801** | **1,945** | 100 (train), **99 present in validation** | Train 23–100 per label; validation 0–20 per label |
+| T3 Provision classification | LexGLUE LEDGAR | **9,801** | **1,945** | 100 (train), **99 present in validation** | Train used catefories 23–100 per label; validation used categories 0–20 per label |
 
-T1 and T2 use **disjoint category sets**: the nine entity categories used by T2 (Document Name, Parties, Agreement Date, Effective Date, Expiration Date, Renewal Term, Notice Period To Terminate Renewal, Governing Law, Warranty Duration) plus `Filename` are excluded from T1, leaving exactly 32 Yes/No categories — asserted in code, not assumed.
+T1 and T2 use **disjoint category sets**: the nine entity categories used by T2 (Document Name, Parties, Agreement Date, Effective Date, Expiration Date, Renewal Term, Notice Period To Terminate Renewal, Governing Law, Warranty Duration) plus `Filename` are excluded from T1, leaving exactly 32 Yes/No categories. This is asserted in the pipeline of the task not assumed.
 
 Every record, in all three tasks, has the same four fields, which is what lets one trainer configuration and one evaluation idiom serve all three:
 
@@ -92,37 +92,37 @@ The `category` field is never shown to the model; it exists so that evaluation c
 
 ### 3.2 Data pre-processing
 
-This section documents every transformation applied between the published corpora and the JSONL files the trainer and the evaluator actually read. It is reported in detail because two of the transformations have measurable, previously undocumented effects on the task-2 results in §4.2.2, and because the pipeline cannot be reproduced without them.
+This section documents every transformation applied between the published corpora and the JSONL files the trainer and the evaluator actually read. It is reported in detail because two of the transformations have measurable, previously undocumented effects on the task-2 results in section 4.2.2, and because the pipeline cannot be reproduced without them.
 
-An important structural point first: **all three tasks build their training *and* evaluation data in the same notebook cells, from the same source, with the same code.** There is no separate evaluation preprocessing path. The split happens at the contract (or, for task 3, the official-split) level, and the two halves are then passed through an identical builder. The baseline notebooks do not rebuild anything — they load the JSONL files the fine-tuned run emitted and returned as Kaggle artifacts, which is what makes the record-by-record validation-set equality check in §3.3.2 possible. The evaluator additionally reuses the *same* prompt-assembly function as training, so "preprocessing for evaluation" is, by design, nothing more than "preprocessing for training, minus the target completion".
+An important structural point worth noting is that all three tasks build their training and evaluation data in the same notebook cells, from the same source, with the same code. There is no separate evaluation preprocessing path. The split happens at the contract (or, for task 3, the official-split) level, and the two halves are then passed through an identical builder. The baseline notebooks do not rebuild anything,they load the JSONL files the fine-tuned run emitted and returned as Kaggle artifacts, which is what makes the record-by-record validation-set equality check in section 3.3.2 possible. The evaluator additionally reuses the same prompt-assembly function as training, so "preprocessing for evaluation" is, by design, nothing more than "preprocessing for training".
 
 #### 3.2.1 Acquisition
 
 | Task | Script | What it fetches | What it writes |
 | :--- | :--- | :--- | :--- |
-| 1, 2 | `scripts/download_cuad.py` | The CUAD v1 release | `data/CUAD_v1/` including `master_clauses.csv` |
-| 3 | `scripts/download_ledgar.py` | `coastalcph/lex_glue`, config `ledgar`, via the `datasets` library | `data/LEDGAR/labels.json` plus `ledgar_{train,validation,test}.csv` |
+| 1, 2 | `download_cuad.py` | The CUAD v1 release | `data/CUAD_v1/` including `master_clauses.csv` |
+| 3 | `sdownload_ledgar.py` | `coastalcph/lex_glue`, config `ledgar`, via the `datasets` library | `data/LEDGAR/labels.json` plus `ledgar_{train,validation,test}.csv` |
 
-The LEDGAR script does one piece of real work rather than a plain dump: the source dataset stores the label as an integer 0–99, so the script resolves the `ClassLabel` feature's `names` list once, writes an explicit `id → name` map to `labels.json`, and adds a `label_name` column to every CSV. Everything downstream therefore reads plain files and never re-resolves label ids — the same design principle as CUAD's CSV. Both scripts are idempotent (they skip an existing target unless `--force` is passed).
+The LEDGAR script does one piece of real work rather than a plain dump: the source dataset stores the label as an integer 0–99, so the script resolves the `ClassLabel` feature's `names` list once, writes an explicit `id → name` map to `labels.json`, and adds a `label_name` column to every CSV. Everything downstream therefore reads plain files and never re-resolves label ids, the same design principle as CUAD's CSV.
 
-#### 3.2.2 Task 1 and Task 2 — the shared CUAD pre-processing chain
+#### 3.2.2 Task 1 and Task 2 shared CUAD pre-processing chain
 
-CUAD passes through **five** stages before it reaches the model. Stages 1–2 are shared by both tasks; stages 3–5 differ.
+CUAD passes through five stages before it reaches the model. Stages 1–2 are shared by both tasks; stages 3–5 differ.
 
-##### Stage 1 — Cell-level text cleaning (`scripts/preprocess_values_cuad.py`)
+##### Stage 1 — Cell-level text cleaning 
 
-The raw CSV is re-read with `csv.DictReader` (rather than `pandas.read_csv`) using `encoding="utf-8", errors="replace"`, because the raw file contains inconsistent quoting and non-UTF-8 bytes that break a naive parse. The resulting frame then has a single `clean_text` function applied to **every cell**, via `df.map(clean_text)`. That function:
+The raw CSV is re-read and using `encoding="utf-8", errors="replace"`, because the raw file contains inconsistent quoting and non-UTF-8 bytes that break a naive parse. The resulting frame then has a single function for cleaning the text that applied to every cell. That function:
 
 1. maps missing values to the empty string;
 2. coerces to `str`;
-3. removes `[`, `]`, `{`, `}` explicitly;
-4. **removes every character that is not `[a-zA-Z0-9\s]`**;
+3. removes `[`, `]`, `{`, `}` explicitly.
+4. removes every character that is not `[a-zA-Z0-9\s]`.
 5. collapses newlines, tabs and runs of whitespace into single spaces;
 6. strips leading/trailing whitespace.
 
-The output is `master_clauses_cleaned.csv` — still 510 × 83 — and it is this file, not the raw one, that both training notebooks read.
+The output is `master_clauses_cleaned.csv` and it is this file, not the raw one, that both training notebooks read.
 
-Step 4 is the consequential one, and its effects were measured during this review rather than assumed. Because it is applied to *every* cell, it transforms the **ground-truth answer columns** as well as the clause text:
+Step 4 is the consequential one, and its effects were measured during this review rather than assumed. Because it is applied to every cell, it transforms the ground-truth answer columns as well as the clause text:
 
 | Column | Raw CUAD value | Value in `master_clauses_cleaned.csv` |
 | :--- | :--- | :--- |
@@ -132,87 +132,68 @@ Step 4 is the consequential one, and its effects were measured during this revie
 | `Governing Law-Answer` | `Nevada` | `Nevada` *(unchanged)* |
 | `Parties-Answer` | `Birch First Global Investments Inc. ("Company"); Mount Kowledge Holdings Inc. ("Marketing Affiliate", "MA")` | `Birch First Global Investments Inc Company Mount Kowledge Holdings Inc Marketing Affiliate MA` |
 
-Three consequences follow, all of which bear directly on §4.2.2 and none of which were previously recorded:
+Three consequences follow from this:
 
-- **Every date target becomes an unseparated digit string.** The model is trained to answer `{"Agreement Date": "5814"}` for a clause reading *"8th day of May 2014"*. The target is lossy and ambiguous (`5814` is equally readable as 5/8/14 or 5/81/4), and the digit count varies with the date (`123114` is six digits, `63010` five). This is an arbitrary surface form the model must *infer*, not a value it can copy.
-- **The `Parties` list separator is destroyed.** 99.2% of raw `Parties-Answer` values use `;` to delimit the parties; `clean_text` strips it, collapsing the list into one space-joined blob. Stage 4 below shows what that destroys.
-- **Clause text loses all punctuation and symbols.** Verified on a 400-example sample of the generated task-1 inputs: the characters `.` `,` `%` `$` `(` `"` `;` occur in **0.0%** of them. So `10%` becomes `10` ("an amount equal to 10 of the hosting fees"), sentence boundaries vanish, and the quotation marks that mark defined terms in contract drafting are gone. For comparison, task 3's inputs are untouched — `.` appears in 100% and `,` in 89.2% of them — so the two CUAD tasks and the LEDGAR task do not feed the model comparable text.
+- **Every date target becomes an unseparated digit string.** The model is trained to answer `{"Agreement Date": "5814"}` for a clause reading *"8th day of May 2014"*. The target is lossy and ambiguous (e.g. `5814` is equally readable as 5/8/14 or 5/81/4), and the digit count varies with the date (e.g. `123114` is six digits, `63010` five). This is an arbitrary surface form the model must infer, not a value it can copy.
+- **The `Parties` list separator is destroyed.** 99.2% of raw `Parties-Answer` values use `;` to delimit the parties; `clean_text` strips it, collapsing the list into one space-joined blob. 
+- **Clause text loses all punctuation and symbols.** Verified on a 400-example sample of the generated task-1 inputs: the characters `.` `,` `%` `$` `(` `"` `;` occur in **0.0%** of them. So `10%` becomes `10`, sentence boundaries vanish, and the quotation marks that mark defined terms in contract drafting are gone. For comparison, task 3's inputs are untouched, for example `.` appears in 100% and `,` in 89.2% of them, so the two CUAD tasks and the LEDGAR task do not feed the model comparable text.
 
-No stage of the pipeline re-introduces the stripped information, and no sanity check tests for it. This is recorded as failure mode 12 in §5.1.
+No stage of the pipeline re-introduces the stripped information, and no sanity check tests for it. This is recorded as failure mode 12 in section 5.1.
 
-##### Stage 2 — Column-name normalisation (notebook cells 8–10, identical in both notebooks)
+##### Stage 2 — Column-name normalisation
 
-Both notebooks re-read the cleaned CSV with `csv.DictReader` and then normalise the **headers only** (a reduced `clean_text` that strips non-alphanumerics is applied to column names; cell values are *not* re-cleaned, having been cleaned in stage 1). Any header containing `Answer` is then renamed so that the suffix is `_Answer`:
+Both notebooks re-read the cleaned CSV with `csv.DictReader` and then normalise the headers only (a reduced `clean_text` that strips non-alphanumerics is applied to column names; cell values are not re-cleaned, having been cleaned in stage 1). Any header containing `Answer` is then renamed so that the suffix is `_Answer`:
 
 ```
 CSV header            after header cleaning     after rename
 "Document Name-Answer"  →  "Document NameAnswer"  →  "Document Name_Answer"
 ```
 
-This gives the notebooks the `[Category]` / `[Category]_Answer` pairing their code relies on. It has one side effect that the model sees directly: because header cleaning strips hyphens and slashes, **12 of the 32 task-1 category names are mangled in the prompt**, e.g. `Non-Compete` → `NonCompete`, `Revenue/Profit Sharing` → `RevenueProfit Sharing`, `Anti-Assignment` → `AntiAssignment`, `Rofr/Rofo/Rofn` → `RofrRofoRofn`, `Unlimited/All-You-Can-Eat-License` → `UnlimitedAllYouCanEatLicense`. The model is therefore asked *"Is the following contract text a `RofrRofoRofn` clause?"*. Because the same mangled name is used in training, evaluation **and** the baseline, this does not bias the comparison; it does make the prompt less legible and is a plausible small handicap on both arms.
+This gives the notebooks the `[Category]` / `[Category]_Answer` pairing their code relies on. It has one side effect that the model sees directly, which is the fact that because header cleaning strips hyphens and slashes, 12 of the 32 task-1 category names are mangled in the prompt, e.g. `Non-Compete` → `NonCompete`, `Revenue/Profit Sharing` → `RevenueProfit Sharing`, `Anti-Assignment` → `AntiAssignment`, `Rofr/Rofo/Rofn` → `RofrRofoRofn`, `Unlimited/All-You-Can-Eat-License` → `UnlimitedAllYouCanEatLicense`. The model is therefore asked *"Is the following contract text a `RofrRofoRofn` clause?"*. Because the same mangled name is used in training, evaluation and the baseline, this does not bias the comparison, it does however make the prompt less legible and is a plausible small handicap on both arms.
 
 ##### Stage 3 — Category selection
 
-Task 2 takes the 9 entity categories by explicit list. Task 1 takes every column that has a matching `_Answer` partner and is **not** in task 2's list (which also excludes `Filename`), then asserts the result is exactly 32 — so a change in the source schema fails loudly instead of silently shifting the task definition.
+Task 2 takes the 9 entity categories by explicit list. Task 1 takes every column that has a matching `_Answer` partner and is not in task 2's list, then asserts the result is exactly 32 so a change in the source schema fails loudly instead of silently shifting the task definition.
 
 ##### Stage 4 — Example construction (the task-specific step)
 
-**Task 1** converts each `[Category]_Answer` cell to a binary label (`"No"` or blank → `No`; anything else → `Yes`) and then builds one example per (contract, category) pair with the hard-negative procedure described in §3.3.2. Two silent filters apply: a `Yes` row whose context cell is blank is **skipped** (the two columns disagree), and a `No` row is skipped if the contract has no other populated category to borrow from.
+**Task 1** converts each `[Category]_Answer` cell to a binary label (`"No"` or blank → `No`; anything else → `Yes`) and then builds one example per contract, category pair with the hard-negative procedure described in section 3.3.2. 
 
-**Task 2** runs a dedicated `normalize_answer` function over each answer cell, which is designed to produce `None | str | list[str]`:
+Two silent filters apply: a `Yes` row whose context cell is blank is skipped, meaning that the two columns disagree, and a `No` row is skipped if the contract has no other populated category to borrow from.
+
+**Task 2** runs a dedicated `normalize_answer` function over each answer cell, which is designed to produce 3 data types for a value, `None, str or list[str]`. Processing is detailed in the following steps.
 
 1. missing or blank → `None`;
-2. a bracketed list-string such as `"['5/8/2014']"` is parsed with `ast.literal_eval` and re-joined with `"; "`;
-3. the string is split on `;`, blank parts dropped;
-4. **more than one part → `list[str]`; exactly one part → plain `str`**.
+2. a bracketed list-string such as `"['5/8/2014']"` is parsed and re-joined with `"; "`;
+3. the string is split on `;` and blank parts are dropped.
+4. more than one part converts to `list[str]` and exactly one part converts to plain `str`.
 
-The example is then emitted only if the *context* column is non-empty, with the target produced by `json.dumps({category: value})` — so the label is valid single-key JSON by construction, with `None` serialising to `null`. This skipping is why task 2 has **3,085 examples rather than 510 × 9 = 4,590**.
-
-Two findings about this stage, both verified across all 3,085 generated examples:
-
-- **The `list[str]` branch never fires.** Every target value is a `str` (2,972) or `null` (163); **not one is a JSON list.** The cause is the chain described in stage 1: `normalize_answer` splits on `;`, but `clean_text` already removed every `;`, so step 3 always yields exactly one part and step 4 always takes the scalar branch. The function's own self-tests pass because they are run on hand-written strings (`"Party A; Party B"`) that still contain the delimiter, which is why the problem went unnoticed. The consequence is that the instruction's promise *"If multiple values exist, return them as a list of strings"* is never demonstrated to the model, and the list-handling half of the evaluation metric is dead code on this dataset (see the correction in §4.1.2).
-- **`Warranty Duration` has a constant target.** In raw CUAD, `Warranty Duration-Answer` is a presence column holding `Yes` (75 contracts) or `No` (435), not a duration. Because stage 4 keeps only rows with non-empty context, all 75 surviving examples have the gold value `"Yes"` — a single constant string. Task 2 therefore never learns to extract a warranty duration; it learns to emit `{"Warranty Duration": "Yes"}` unconditionally. Its reported 1.000 exact match (n = 11) is a degenerate constant-target result, not an extraction result.
-
-A third measurement from this review puts the remaining per-category scores in context by asking how much of each target is *present in the input at all*:
-
-| Category | gold == input exactly | gold is a substring of input | total | Reported FT exact match |
-| :--- | ---: | ---: | ---: | ---: |
-| Document Name | **501 (98.2%)** | 501 | 510 | 0.980 |
-| Governing Law | 0 | **391 (89.5%)** | 437 | 0.920 |
-| Notice Period To Terminate Renewal | 0 | 83 (74.8%) | 111 | 0.931 |
-| Agreement Date | 24 | 46 (9.9%) | 466 | 0.840 |
-| Effective Date | 9 | 22 (5.7%) | 388 | 0.792 |
-| Renewal Term | 0 | 27 (15.3%) | 176 | 0.535 |
-| Parties | 13 | 14 (2.8%) | 509 | 0.206 |
-| Expiration Date | 0 | **4 (1.0%)** | 413 | 0.395 |
-| Warranty Duration | 0 | **0 (0%)** | 75 | 1.000 |
-
-This reframes §4.2.2 considerably. `Document Name` is a near-verbatim **copy** task (the gold answer *is* the input string in 98.2% of cases), and `Governing Law` is a **span-copy** task — which is why both score highest. `Expiration Date` is at the opposite extreme: its target appears in the input 1.0% of the time, because stage 1 turned it into a digit string that the clause text cannot contain. Its 0.395 exact match is therefore better read as *"the model inferred the arbitrary digit encoding 39.5% of the time"* than as a statement about legal date comprehension.
+The example is then emitted only if the context column is non-empty, so the label is valid single-key JSON by construction, with `None` serialising to `null`. This skipping is why task 2 has 3,085 examples rather than 510 × 9 = 4,590.
 
 ##### Stage 5 — Split and serialisation
 
-Contracts are split **before** examples are built, with `sklearn.model_selection.train_test_split(df, random_state=42)`, so no contract contributes clauses to both sides (§3.3.2 explains why this matters for task 1 in particular). The two tasks do **not** use the same ratio:
+Contracts are split before examples are built, with, so no contract contributes clauses to both sides. The two tasks do not use the same ratio:
 
 | Task | `test_size` | Contracts (train / validation) | Examples (train / validation) |
 | :--- | ---: | :--- | :--- |
-| 1 | 0.15 | 433 / 77 | 6,106 / 2,208 *(after balancing)* |
+| 1 | 0.15 | 433 / 77 | 6,106 / 2,208 |
 | 2 | 0.20 | 408 / 102 | 2,454 / 631 |
 
-Task 1 then applies a **train-only** 1:1 class balance (§3.3.2); task 2 applies no balancing. This is why task 1's *example* ratio (6,106 / 2,208 ≈ 73/27) looks nothing like its *contract* ratio (85/15). Downsampling the majority `No` class removes training examples only, so the training side shrinks while validation keeps every example. `docs/task_1/TASK1_EVALUATION_METRICS_ASSESSMENT.md` flags this gap as a possible split bug; the balancing step fully explains it. Both write JSONL with one JSON object per line. Note that task 1 and task 2 serialise with a plain `json.dumps` and no explicit file encoding, whereas task 3 uses `ensure_ascii=False` with `encoding="utf-8"`; for the CUAD tasks this is inconsequential because stage 1 has already removed every non-ASCII character.
+Task 1 then applies a train-only 1:1 class balance, task 2 applies no balancing. This is why task 1's example ratio (6,106 / 2,208 ≈ 73/27) looks nothing like its *contract* ratio (85/15). Downsampling the majority `No` class removes training examples only, so the training side shrinks while validation keeps every example.
 
-Each notebook's sanity-check cell runs before serialisation and is part of the preprocessing contract, not an afterthought. Task 1 asserts that no placeholder string survives into any `No` input — the check that proves the hard-negative substitution worked — and prints the per-class counts. Task 2 asserts that every category has at least one train *and* one validation example, and that **every generated target round-trips through `json.loads` with exactly the requested key** — because a malformed target would be actively teaching the model to emit bad JSON.
+Each notebook's sanity-check runs before serialisation and is part of the preprocessing contract. Task 1 asserts that no placeholder string survives into any `No` input and prints the per-class counts. Task 2 asserts that every category has at least one train and one validation example, and that every generated target round-trips through `json.loads` with exactly the requested key, because a malformed target would be actively teaching the model to emit bad JSON.
 
 #### 3.2.3 Task 3 — the LEDGAR pre-processing chain
 
-Task 3's chain is shorter, and notably **applies no text cleaning at all**: the provision text goes from the LexGLUE CSV into the prompt as `str(row.text)`, punctuation, casing and typography intact (verified in §3.2.2, stage 1). LexGLUE has already done the normalisation work that CUAD required — single label, 100 classes, fixed splits — so there is nothing analogous to the CUAD cleaner to run.
+Task 3's chain is shorter, and more notably applies no text cleaning at all with the provision text going from the LexGLUE CSV into the prompt as a string with its punctuation, casing and typography intact. LexGLUE has already done the normalisation work that CUAD required (single label, 100 classes, fixed splits), so there is nothing analogous to the CUAD cleaner to run.
 
-1. **Label menu construction.** `labels.json` is read into an `id → name` map and flattened into `LABELS`, a list **in label-id order**. This ordering is the canonical menu: it is joined with `", "` and inlined into the instruction, and it also defines the lookup table used to parse predictions. Using one ordered list for both means the menu the model is shown and the vocabulary it is scored against cannot drift apart.
-2. **Stratified subsampling.** `stratified_sample` groups the full split by `label_name` and takes `min(len(group), per_label)` rows from each with `random_state=42`, then shuffles the result. `TRAIN_PER_LABEL = 100` and `VAL_PER_LABEL = 20`. Rare labels cap at whatever they have: in train, exactly three labels fall below the target — `Books` (23), `Assigns` (31) and `Qualifications` (47) — yielding 9,801 rows; validation yields 1,945 rows with per-label counts of 0–20 (`Books` 0, `Assigns` 3, `Qualifications` 8, `Powers` 15, `Venues` 19). The 10,000-row official **test** split is downloaded and then left untouched.
+1. **Label menu construction.** `labels.json` is read into an `id to name` mapping and flattened into `LABELS`, a list **in label-id order**. This ordering is the canonical menu: it is joined with `", "` and inlined into the instruction, and it also defines the lookup table used to parse predictions. Using one ordered list for both means the menu the model is shown and the vocabulary it is scored against cannot drift apart.
+2. **Stratified subsampling.** `stratified_sample` groups the full split by `label_name` and takes `min(len(group), per_label)` rows, then shuffles the result. `TRAIN_PER_LABEL = 100` and `VAL_PER_LABEL = 20`. Rare labels cap at whatever they have: in train, exactly three labels fall below the target — `Books` (23), `Assigns` (31) and `Qualifications` (47) — yielding 9,801 rows; validation yields 1,945 rows with per-label counts of 0–20 (`Books` 0, `Assigns` 3, `Qualifications` 8, `Powers` 15, `Venues` 19). The 10,000-row official **test** split is downloaded and then left untouched.
 3. **Example construction.** One example per row: the shared 100-label instruction, `input` = the provision text, `output` = `label_name`, `category` = the same label name (the per-label evaluation hook). No negatives to synthesise and no values to normalise — the target is already a member of a closed set.
 4. **Sanity checks.** Every target must be one of the 100 allowed labels; no input may be blank; per-label counts are summarised; and label coverage is asserted to be complete **for train only** (`require_full_coverage=False` for validation), which is the explicit accommodation for `Books` being absent from LexGLUE's validation split (§3.1.2).
 5. **Prompt-budget enforcement.** Unlike the CUAD tasks, task 3's length control happens at *prompt-assembly* time rather than at data-build time, in the shared `build_prompt()`: the provision is trimmed to `MAX_INPUT_TOKENS` measured with the real Llama-3.1 tokenizer, so the tail-positioned label can never be cut. The budget is derived, not hardcoded, and the production run logged it as *341 instruction+template tokens + 670 provision tokens + ≤ 5 label tokens ≤ 1024*, trimming 79/9,801 train (0.81%) and 9/1,945 validation (0.46%) provisions. §3.3.1 explains why trimming the input rather than the assembled prompt was mandatory.
 
-#### 3.2.4 Summary — pre-processing by task
+#### 3.2.4 Pre-processing by task summary
 
 | Stage | Task 1 (CUAD) | Task 2 (CUAD) | Task 3 (LEDGAR) |
 | :--- | :--- | :--- | :--- |
@@ -234,21 +215,21 @@ Task 3's chain is shorter, and notably **applies no text cleaning at all**: the 
 
 **Why parameter-efficient fine-tuning at all.** Full fine-tuning of an 8-billion-parameter model requires holding the weights, their gradients, and two optimiser moments in memory — far beyond 16 GB. LoRA (Hu et al., 2022) avoids this by freezing the pretrained weights and learning a low-rank update: for a frozen weight matrix *W*, it trains two small matrices *A* and *B* and uses *W + BA*, where the rank *r* of *BA* is tiny relative to *W*. Only *A* and *B* receive gradients, so optimiser state shrinks by orders of magnitude and the original model is never modified.
 
-**Why QLoRA specifically.** QLoRA (Dettmers et al., 2023) pushes this further by also *quantising* the frozen base weights to 4 bits. It contributes three components, two of which are used here:
+QLoRA (Dettmers et al., 2023) pushes this further by also quantising the frozen base weights to 4 bits. It contributes three components:
 
-- **4-bit NormalFloat (NF4)** — *used.* A quantisation data type designed to be information-theoretically well matched to normally distributed weights, which neural-network weights approximately are. The weights are stored in 4 bits and dequantised block by block to a 16-bit compute dtype for every matmul; the 4-bit format is storage only.
-- **Paged optimisers** — *used.* NVIDIA unified memory lets transient optimiser-memory spikes page to host RAM instead of raising an out-of-memory error.
-- **Double quantisation** — *not used.* This quantises the per-block quantisation constants themselves and saves roughly 0.37 bits per parameter, about 0.3 GB on this model. None of the notebooks set `bnb_4bit_use_double_quant`, so it stays at its default of `False`. The memory problems this project actually hit were dominated by the logits tensor (*memory and numerics*, item 3, below), which double quantisation does not touch.
+- **4-bit NormalFloat (NF4)**: A quantisation data type designed to be information-theoretically well matched to normally distributed weights, which neural-network weights approximately are. The weights are stored in 4 bits and dequantised block by block to a 16-bit compute dtype for every matmul; the 4-bit format is storage only.
+- **Paged optimisers**: NVIDIA unified memory lets transient optimiser-memory spikes page to host RAM instead of raising an out-of-memory error.
+- **Double quantisation**: This quantises the per-block quantisation constants themselves and saves roughly 0.37 bits per parameter, about 0.3 GB on this model.
 
 Dettmers et al. (2023) report that the full combination fits fine-tuning of a 65B model onto a single 48 GB GPU while preserving 16-bit fine-tuning task performance. The present work is the same idea at a smaller scale: an 8B model on a 16 GB card.
 
-**Base model.** All three production runs adapt `meta-llama/Meta-Llama-3.1-8B` — the **base** checkpoint, not `-Instruct`. Llama 3.1 is an open-weight dense transformer family released with a 128K-token context window (Grattafiori et al., 2024); the 8B configuration has 32 layers, hidden size 4,096, `max_position_embeddings` 131,072, and a vocabulary of **128,256** tokens. That vocabulary size is not trivia — it dominates peak memory during training (§3.3.1, *memory*) because the loss materialises a `tokens × 128,256` logits tensor.
+**Base model.** All three production runs adapt `meta-llama/Meta-Llama-3.1-8B`. Llama 3.1 is an open-weight dense transformer family released with a 128K-token context window (Grattafiori et al., 2024); the 8B configuration has 32 layers, hidden size 4,096, `max_position_embeddings` 131,072, and a vocabulary of **128,256** tokens.
 
-Choosing the base rather than the instruction-tuned checkpoint is a deliberate methodological decision: the research question is what *fine-tuning* teaches, so the baseline must be a model that has had no instruction tuning of its own to confound the comparison. The project's own model-selection review (`docs/MODEL_SELECTION.md`) notes that `Qwen/Qwen2.5-7B-Instruct` (Apache-2.0, stronger reported JSON adherence) and the legal-domain-pretrained `Equall/Saul-7B-Instruct-v1` (Colombo et al., 2024) are arguably better *performance* picks; neither was swapped in, so this remains an untested alternative rather than a finding (§5.2).
+Choosing the base rather than the instruction-tuned checkpoint is a deliberate methodological decision as what the research questions is what fine-tuning teaches, so the baseline must be a model that has had no instruction tuning of its own to confound the comparison.
 
-`meta-llama/Llama-3.2-1B` was used as a same-family **smoke test** to prove the pipeline end to end. Its artifacts survive (`kaggle_output_3.2B_Llama_smoketest/`: accuracy .897 on a 448-example subset) and are reported here only as evidence the pipeline ran, never as a result.
+`meta-llama/Llama-3.2-1B` was used as a same-family **smoke test** to prove the pipeline end to end.
 
-**Fine-tuning parameters — what each one does, and why it has this value.** The tables below list every setting passed in the training notebooks (cells 27 of T1/T2, cell 21 of T3), plus the library defaults that matter because they were *not* overridden. Values were cross-checked against each run's `train_metrics.json` and the saved `adapter_config.json`. Where T3 differs from T1/T2, both values are shown; §3.3.1, *memory and numerics*, explains why T3 differs.
+**Fine-tuning parameters** The tables below list every setting passed in the training process, plus the library defaults that matter.
 
 *(a) Quantisation — `BitsAndBytesConfig`.* This controls how the frozen base model is stored.
 
@@ -292,7 +273,7 @@ Choosing the base rather than the instruction-tuned checkpoint is a deliberate m
 
 | Parameter | T1 / T2 | T3 | What it does, and why this value |
 | :--- | :--- | :--- | :--- |
-| `num_train_epochs` | 1 | 1 | One pass over the training set, set by the compute budget. No epoch sweep was run (§5.1, item 1). |
+| `num_train_epochs` | 1 | 1 | One pass over the training set, set by the compute budget. |
 | `per_device_train_batch_size` | 1 | 2 | Rows per forward pass. bitsandbytes dequantises every weight on every forward pass whatever the batch size, so batch 1 spends most GPU time dequantising. T3 raised it to 2 to amortise that cost. |
 | `gradient_accumulation_steps` | 8 | 4 | Micro-batches summed before one optimiser step. |
 | → effective batch / optimiser steps | 8 / ⌈N/8⌉ | 8 / ⌈N/8⌉ | Same effective batch in all three runs, giving 764 (T1), 307 (T2) and 1,226 (T3) optimiser steps, which match `global_step` in each `train_metrics.json`. |
@@ -304,7 +285,7 @@ Choosing the base rather than the instruction-tuned checkpoint is a deliberate m
 | `optim` | `paged_adamw_32bit` | `paged_adamw_32bit` | AdamW (default β₁ = 0.9, β₂ = 0.999, ε = 1e-8) with 32-bit moment estimates in paged memory. Optimiser state is only 2 × 13.6M × 4 bytes ≈ 109 MB, so paging is a safety net here rather than a necessity. |
 | mixed precision | `bf16=True` | `fp16=True` | Autocasts the forward and backward passes to 16-bit, while the trainable adapter weights and optimiser state stay fp32. `fp16` adds dynamic loss scaling, which multiplies the loss to stop small gradients underflowing. That is why T3's pre-flight check asserts the adapter weights are fp32: fp16 gradients cannot be unscaled. |
 | `gradient_checkpointing` (+ `use_reentrant=False`) | `True` | `True` | Stores only layer-boundary activations and recomputes the rest in the backward pass, trading ~30% extra compute for a large cut in activation memory (Chen et al., 2016). The non-reentrant variant is needed because the frozen base weights do not require gradients, and the older reentrant implementation can then silently drop the adapter's gradients. |
-| `max_length` | 1,024 | 1,024 | The maximum tokens per example (prompt + completion). A longer example is **truncated from the end, which deletes the answer**. T3 prevents this by trimming the input text first. T1 does not, and loses the target on 0.8% of its training examples (§3.2.4, §5.1 item 11). |
+| `max_length` | 1,024 | 1,024 | The maximum tokens per example (prompt + completion). A longer example is **truncated from the end, which deletes the answer**. T3 prevents this by trimming the input text first. T1 does not, and loses the target on 0.8% of its training examples. |
 | `completion_only_loss` | `True` | `True` | Gives prompt tokens the label `-100`, so the cross-entropy loss is computed only on the answer. Without it, the loss on a one-token answer like `Yes` would be swamped by the loss on reproducing hundreds of clause tokens. |
 | `packing` | `False` | `False` | Each sequence holds exactly one example, so no example can attend to another. |
 | `logging_steps` | 25 | 25 | Training loss is printed every 25 optimiser steps, into the run log. |
@@ -341,8 +322,6 @@ Greedy decoding makes every prediction deterministic, so a fine-tuned-versus-bas
 - `trl`'s `SFTTrainer`/`SFTConfig` (von Werra et al., 2020) for supervised fine-tuning;
 - `scikit-learn` (Pedregosa et al., 2011) for the classification metrics.
 
-On Kaggle, the first cell of every training and baseline notebook pins the core stack: `transformers==4.55.4`, `bitsandbytes==0.46.1`, `accelerate==1.7.0`, `peft==0.15.2` and `trl==0.20.0`. `transformers` is held below 4.56 because that release's threaded loader broke bitsandbytes 4-bit loading and fell back to a full fp16 load, which ran out of memory. `datasets`, `torch` and CUDA come unpinned from the Kaggle base image (§5.1, item 19).
-
 **Prompt template.** One template serves all three tasks, in training *and* evaluation *and* the baselines — the Alpaca instruction format popularised by Stanford Alpaca (Taori et al., 2023), itself derived from Self-Instruct (Wang et al., 2023):
 
 ```
@@ -355,52 +334,23 @@ On Kaggle, the first cell of every training and baseline notebook pins the core 
 ### Response:
 ```
 
-The completion the model is trained to produce is exactly the `output` field, appended after `### Response:\n`. That marker is also precisely where `completion_only_loss` stops masking, so the loss is computed on the answer and nothing else.
+The completion the model is trained to produce is exactly the `output` field, appended after `### Response:\n`.
 
-**Memory and numerics — the engineering that made the runs finish.** These are not incidental implementation notes; two of them are the difference between a result and a dead kernel, and they are reported because they are reusable findings about this hardware tier.
-
-1. **`fp16`, not `bf16`, on a T4 (task 3).** bfloat16 requires compute capability ≥ 8.0 (Ampere); Turing cards such as the T4 (cc 7.5) have no bf16 tensor cores. Critically, `torch.cuda.is_bf16_supported()` nonetheless returns `True` on these cards because recent PyTorch counts emulated bf16 as support (pytorch/pytorch issues #75427, #118122), so a bf16 run proceeds silently at a large speed penalty. An earlier task-3 attempt at bf16 measured ~12.8 s per example (~35 h for one epoch) and was killed by Kaggle's 12 h wall. Switching to `fp16` everywhere (`fp16=True`, `bnb_4bit_compute_dtype=torch.float16`) with batch 2 × accumulation 4 brought the measured pace to 18.0 s/step (~6.1 h/epoch, logged at step 100). Mixed-precision training with fp16 is the standard technique here (Micikevicius et al., 2018). A pre-flight check now hard-fails bf16 on any pre-Ampere GPU.
-2. **Cap the sequence by trimming the *input*, never the assembled prompt.** Because the answer sits at the *tail* of the sequence and the 341-token label menu sits at the head, truncating the assembled sequence at 1,024 tokens deletes the training signal on the longest examples. With `completion_only_loss` and a micro-batch of 1, a micro-batch whose every token is masked produces **NaN loss** — which is exactly what killed the earliest task-3 attempts. The fix derives the input budget from the real tokenizer (`MAX_SEQ_LENGTH − overhead − longest label − 8` = 670 provision tokens) and trims the provision text instead. The run log records the cost: **79/9,801 train (0.81%)** and **9/1,945 validation (0.46%)** provisions trimmed. For context, LexGLUE's own BERT baseline truncates LEDGAR at 512 tokens, so 670 is conservative. **Task 1 has the same exposure and no such guard.** Re-tokenising the T1 run's own JSONL with the Llama-3.1 tokenizer shows **50 of 6,106 training prompts (0.82%)** are already ≥ 1,024 tokens before the answer is appended (longest 2,880; median 120). On those 50 the trainer's end-truncation removes the `Yes`/`No` target, so they carry no training signal. T1 did not diverge (final loss 0.094), but those 50 examples were silently wasted. Task 2 never reaches the cap: its longest example is 652 tokens.
-3. **Peak VRAM is dominated by the logits tensor, not the weights.** The loss materialises a `tokens_in_batch × 128,256` logits tensor in fp16 and again in fp32. At `max_length=2048` with batch 2, `group_by_length` deliberately schedules the longest example first, which produced a 1.81 GiB fp32 allocation on top of ~13.5 GiB and a hard OOM inside `cross_entropy`. Dropping to 1,024 fixed it; the production run's own memory probe logged *"worst-case batch (2036 tokens, ~1.6 GB of logits) peaked at 10.8 / 15.6 GB"* and *"projected training peak 11.9 / 15.6 GB"*.
-4. **`embed_tokens` and `lm_head` are recast to fp16 after trainer initialisation.** `SFTTrainer` runs peft's `prepare_model_for_kbit_training` for 4-bit models, which upcasts *every* fp16 parameter to fp32 — including those two frozen 525M-parameter modules, taking each from 1.05 GB to 2.1 GB. Recasting them back (while deliberately leaving the RMSNorms in fp32 for stability, ~1 MB) frees 2 × 1.05 GB, as the production log confirms. It also removes the ~1.05 GB fp16 copy of `lm_head` that autocast otherwise caches, for ~3.2 GB in total. The widely repeated "4-bit 8B ≈ 5.6 GB" rule of thumb is wrong for this stack by roughly 3 GB.
-5. **`generate()` must run inside `torch.autocast`.** The same fp32/fp16 split, seen from the other side: `prepare_model_for_kbit_training` leaves the RMSNorms in fp32, so the final norm emits fp32 hidden states into an fp16 `lm_head` → `RuntimeError: expected scalar type Float but found Half`. Training never hits it because accelerate wraps the training forward in autocast; `generate()` is wrapped by nothing. This crashed a task-3 run **after 5.5 hours of successful training**. Two pre-flight checks now exercise a real forward+backward *and* a real 2-prompt `generate()` before training starts, so a path failure costs seconds.
-6. **A time-budget callback** stops task-3 training at 7 h so that adapter saving and evaluation always complete inside the 12 h kill, and writes `stopped_on_time_budget` into both metrics files so a partial epoch can never be silently compared against a full one. The production run completed its epoch with the budget untouched (`stopped_on_time_budget: false`).
-
-**Recorded cost of the three production runs** (from each run's `train_metrics.json`):
-
-| Run | Optimizer steps | Final training loss | Runtime | Throughput (samples/s) | Precision | Adapter |
-| :--- | ---: | ---: | ---: | ---: | :--- | :--- |
-| T1 | 764 | 0.0942 | 30,995 s (8.6 h) | 0.197 | bf16 | `llama-3.1-8B-cuad-task1` |
-| T2 | 307 | 0.2427 | 10,076 s (2.8 h) | 0.244 | bf16 | `llama-3.1-8B-cuad-task2` |
-| T3 | 1,226 | 0.2926 | 22,025 s (6.1 h) | 0.445 | fp16 | `llama-3.1-8B-ledgar-task3` |
-
-All three adapters have the same shape: 13,631,488 trainable parameters, saved as a 54.6 MB `adapter_model.safetensors`. The final training losses are not comparable across tasks. Each is a mean over completion tokens only, and the completions differ in length and entropy: one token for T1, a short JSON object for T2, a one- to five-token label for T3. The T3 run finished its epoch inside the 7 h budget (`stopped_on_time_budget: false`). Its pace settled at 18.0 s per optimiser step by step 100, against the 102 s per step of the earlier bf16 attempt.
 
 #### 3.3.2 Practical implementation — the logic of each task, and of the baseline comparison
 
 ##### Task 1 — Risk clause recognition (CUAD, binary)
 
-**The question put to the model**, once per (contract, category) pair across the 32 Yes/No categories:
+**The question put to the model**, once per (contract, category) pair across the 32 Yes/No categories, as shown in the example below.
 
 > `Is the following contract text a "Cap On Liability" clause? Answer strictly "Yes" or "No".`
 
-with the clause excerpt as `### Input:` and the single token-string `Yes` or `No` as the target completion.
+Clause excerpt is used as `### Input:` and the single token-string `Yes` or `No` as the target completion.
 
-**The design decision that makes the task honest: hard negatives.** As noted in §3.1.1, raw CUAD provides no text for an absent category, so a naively built Yes/No dataset is trivially gameable. The construction here instead:
 
-1. For each contract, collect every category that *does* have real clause text — that contract's pool of genuine legal language.
-2. For a category whose expert answer is present, emit the category's own text with the label `Yes`.
-3. For a category whose expert answer is `"No"`, emit a **randomly chosen real clause from a different category of the same contract**, labelled `No` (seeded `random.seed(42)`).
+**The split: contract-level, 85/15.** Contracts are split *first*, then examples are built from each side. Clause-level splitting would be leakage: a hard negative in validation could be the very same text the model saw as a positive in training, since every negative is borrowed from a real clause of the same contract. The documented sanity expectation follows from this — an input-ignoring model should score near 50%, not near 100%; a near-perfect validation F1 on the first try would be a leak signal, not a success.
 
-The result is that *both* classes are authentic contract prose from the same document, so surface cues — length, formatting, legalese density — cannot separate them. The label depends on the interaction between the category named in the instruction and the content of the input, which is the skill under test. A sanity-check cell asserts that no placeholder string survives into any `No` input, and the notebook prints sampled negatives for inspection.
-
-A second, smaller filter is applied silently and should be stated: where the `-Answer` column says a clause is present but the matching context cell is blank (the two columns disagree), the example is skipped rather than emitted with empty input.
-
-**The split: contract-level, 85/15, `random_state=42`.** Contracts are split *first*, then examples are built from each side. Clause-level splitting would be leakage: a hard negative in validation could be the very same text the model saw as a positive in training, since every negative is borrowed from a real clause of the same contract. The documented sanity expectation follows from this — an input-ignoring model should score near 50%, not near 100%; a near-perfect validation F1 on the first try would be a leak signal, not a success.
-
-**Class balance is applied to train only.** The training split is downsampled to a 1:1 positive:negative ratio (3,053/3,053); validation is left at its natural 558/1,650 (25.3% positive). The intent is a clean learning signal on a rare-positive task while preserving a realistic evaluation prior. §5.1 returns to the cost of that asymmetry.
-
-**Prediction parsing is lenient.** Greedy decoding, `max_new_tokens=3`, then `"Yes" if "yes" in completion.lower() else "No"`. The consequence is explicit in the project's own documentation and is important for reading the results: this parse **never fails**, so task 1 reports no format-validity metric and a rambling completion is silently coerced into a class rather than counted as malformed. The coercion can push either way. A 3-token ramble that happens to contain "yes", such as an echo of the instruction's `"Yes" or "No"`, becomes `Yes`; every other ramble becomes `No`. The direction of the resulting bias therefore cannot be known in advance. Tasks 2 and 3 do report validity, because their formats can genuinely break.
+**Class balance is applied to train only.** The training split is downsampled to a 1:1 positive:negative ratio (3,053/3,053); validation is left at its natural 558/1,650 (25.3% positive). The intent is a clean learning signal on a rare-positive task while preserving a realistic evaluation sample. 
 
 ##### Task 2 — Structured entity extraction (CUAD, JSON)
 
@@ -432,7 +382,7 @@ Fine-tuning is expected to affect these differently, so the evaluation scores ea
 
 > `Classify the following contract provision. Answer with exactly one label from this list: [Adjustments, Agreements, Amendments, ..., Waivers, Warranties, Withholdings].`
 
-**Why the whole menu is in every prompt.** It costs 331 tokens of every example — roughly a third of the budget — but omitting it would make the baseline comparison meaningless: an un-fine-tuned model cannot be expected to guess a closed taxonomy it has never been shown. The menu is what makes the base model's failures *attributable* rather than inevitable. The price is paid in the input-trimming machinery described in §3.3.1.
+**Why the whole menu is in every prompt.** It costs 331 tokens of every example — roughly a third of the budget — but omitting it would make the baseline comparison meaningless: an un-fine-tuned model cannot be expected to guess a closed taxonomy it has never been shown. 
 
 **Training data is stratified, not natural.** Up to 100 examples per label are drawn from the 60,000-row LexGLUE train split (9,801 total; labels below the target cap out at whatever they have, minimum 23) and up to 20 per label from the 10,000-row validation split (1,945 total). The balanced *validation* set is itself a methodological choice: it means macro-F1 is not quietly dominated by the frequent provision types.
 
