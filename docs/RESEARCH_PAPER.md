@@ -592,7 +592,7 @@ This project set out to test whether a general-purpose open-weight LLM can be ma
 
 **What was found about the engineering, which is reusable.** The free-tier constraint produced findings worth more than the task scores to anyone repeating this: bf16 is a trap on a Turing GPU because PyTorch reports it as supported while it runs emulated; sequence caps must be enforced by trimming the *input*, because truncating an assembled prompt deletes a tail-positioned label and produces NaN loss under completion-only training; peak VRAM for an 8B model at this vocabulary size is dominated by the logits tensor, not the weights; peft's `prepare_model_for_kbit_training` silently upcasts frozen embedding and output layers to fp32, costing ~3 GB once autocast's cached copy is counted; and the dtype split it leaves behind breaks `generate()` outside autocast, which cost one run 5.5 hours of successful training. Pre-flight checks that exercise the real training *and* the real evaluation path before training starts are the cheap general lesson.
 
-### 5.1 Failure modes — what currently limits this research
+### 5.1 Failure modes
 
 These are ordered by how much they constrain the conclusions, and every one is verified against the artifacts rather than guessed.
 

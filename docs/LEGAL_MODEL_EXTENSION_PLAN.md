@@ -175,7 +175,8 @@ needs Saul-QLoRA versus Mistral-QLoRA.
       of `llama_3.1_task_3_no_fine_tune.ipynb` (old: accuracy 0.065, macro-F1 0.066).
 - [x] Run `mistral` baseline for task 1.
       (2026-10-07: accuracy 0.675, macro-F1 0.578, strict-valid 0.987; vs Saul zero-shot macro-F1 −0.151 for Saul, p = 6e-11.)
-- [ ] Run `mistral` baseline for task 2.
+- [x] Run `mistral` baseline for task 2.
+      (2026-10-07: strict JSON-valid 0.005, EM 0.000 — fenced, non-stopping JSON; fence-tolerant diagnostic EM 0.209.)
 - [ ] Run `mistral` baseline for task 3.
 - [x] Run `saul` baseline for task 1. (2026-10-06: answers "No" to all 2,208 → accuracy 0.747 = majority rate,
       macro-F1 0.43; see DESIGN.md run log.)
@@ -219,6 +220,8 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [ ] Run `compare` Saul-baseline versus Mistral-baseline for each task, measuring legal pretraining without fine-tuning.
       T1 done: 216 vs 375 discordant (Mistral / Saul), p = 6.2e-11, but macro-F1 Saul − Mistral −0.151 [−0.175, −0.127]
       → Saul's accuracy edge is its all-"No" majority answer; Mistral is better on macro-F1.
+      T2 done: strict EM 0 for both (0 / 0 discordant, p = 1.0); F1 Saul − Mistral +0.069 [+0.050, +0.089];
+      fence-tolerant diagnostic reverses it (EM Mistral 0.209 vs Saul 0.084) — see DESIGN.md.
 - [ ] Run `compare` Saul-finetune versus Mistral-finetune for each task, the headline legal-pretraining comparison.
       T1 done: 24 vs 15 discordant (Mistral / Saul), p = 0.20, macro-F1 Saul − Mistral −0.005 [−0.012, +0.002] → no significant difference.
 - [ ] Run `compare` Mistral-finetune versus Mistral-baseline and versus Llama-adapter for each task (needed for the
