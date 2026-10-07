@@ -182,10 +182,11 @@ needs Saul-QLoRA versus Mistral-QLoRA.
       (2026-10-06: 0.9620 vs notebook 0.9615 — one example; adapter reload from disk verified.)
 - [x] Run `llama` in `adapter` mode for task 2 with `llama-3.1-8B-cuad-task2` (paper: EM 0.691, F1 0.819).
       (2026-10-06: EM 0.6910 identical, F1 0.818.)
-- [ ] Run `llama` in `adapter` mode for task 3 with `llama-3.1-8B-ledgar-task3` (paper: accuracy 0.769, macro-F1 0.751).
-- [ ] Record in `docs/extension/DESIGN.md` any gap between these scores and the paper's in-process scores
+- [x] Run `llama` in `adapter` mode for task 3 with `llama-3.1-8B-ledgar-task3` (paper: accuracy 0.769, macro-F1 0.751).
+      (2026-10-07: accuracy 0.7676, macro-F1 0.7498; valid-label rate identical.)
+- [x] Record in `docs/extension/DESIGN.md` any gap between these scores and the paper's in-process scores
       (T1/T2 Llama were trained and evaluated in bf16; the harness evaluates in fp16).
-      T1 recorded (+0.0005 accuracy, i.e. one example); T2 recorded (EM identical, F1 −0.002); T3 pending.
+      T1 recorded (+0.0005 accuracy, i.e. one example); T2 recorded (EM identical, F1 −0.002); T3 recorded (−2 examples, macro-F1 −0.001).
 
 ## Phase 9 — QLoRA fine-tunes (one Kaggle session each)
 
@@ -195,22 +196,25 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [ ] Fine-tune `mistral` on task 1.
 - [x] Fine-tune `saul` on task 1. (2026-10-06: 3.06 h, 1 full epoch; accuracy 0.968, macro-F1 0.959.)
 - [ ] Fine-tune `mistral` on task 3 with the 7-hour time-budget callback (Llama T3 needed 6.1 h of it).
-- [ ] Fine-tune `saul` on task 3 with the 7-hour time-budget callback.
+- [x] Fine-tune `saul` on task 3 with the 7-hour time-budget callback.
       Smoke (200 train / 200 val, 2026-10-06): 20.9 s/step → full epoch (1,226 steps) ≈ 7.25 h, over 7 h. The harness
       budget is raised to 9 h (≈ 0.8 h eval + setup still leaves ~2 h of Kaggle's 12 h), so the epoch completes.
+      Full run 2026-10-07: 5.79 h, 1 full epoch; accuracy 0.766, macro-F1 0.748.
 - [ ] Reject and re-run any run whose `train_metrics.json` shows `stopped_on_time_budget: true`.
 
 ## Phase 10 — Paired comparisons
 
 - [ ] Run `compare` Saul-baseline versus Mistral-baseline for each task, measuring legal pretraining without fine-tuning.
 - [ ] Run `compare` Saul-finetune versus Mistral-finetune for each task, the headline legal-pretraining comparison.
-- [ ] Run `compare` Saul-finetune versus Llama-adapter for each task, the best-model comparison.
+- [x] Run `compare` Saul-finetune versus Llama-adapter for each task, the best-model comparison.
       T1 done: 27 vs 40 discordant, McNemar p = 0.142, macro-F1 diff +0.007 [−0.002, +0.016] → no significant difference.
       T2 done: 19 vs 40, p = 0.0086, F1 diff +0.036 [+0.017, +0.056] → Saul better, but only on the two date
       categories, whose labels are punctuation-stripped digit strings (see DESIGN.md); other categories p = 0.87.
-- [ ] Run `compare` Saul-finetune versus Saul-baseline for each task, matching the paper's existing delta.
+      T3 done: 104 vs 100, p = 0.83, macro-F1 diff −0.002 [−0.016, +0.012] → no significant difference.
+- [x] Run `compare` Saul-finetune versus Saul-baseline for each task, matching the paper's existing delta.
       T1 done: p = 2.4e-99, macro-F1 +0.531 [+0.518, +0.543].
       T2 done: 0 vs 457, p = 5.4e-138, F1 +0.784 [+0.753, +0.814].
+      T3 done: 19 vs 1,393, p < 1e-300, macro-F1 +0.705 [+0.682, +0.720].
 - [x] Use McNemar on per-example correctness (T1 accuracy, T2 exact match, T3 accuracy) and bootstrap 95% CIs for F1 metrics.
       (Implemented in `compare`: exact binomial McNemar + paired bootstrap; T1 uses accuracy + macro-F1.)
 - [ ] Add `scripts/collect_extension_results.py` merging every `eval_metrics.json` and `compare_*.json` into one CSV.
