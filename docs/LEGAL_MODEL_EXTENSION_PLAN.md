@@ -178,6 +178,9 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [x] Run `mistral` baseline for task 2.
       (2026-10-07: strict JSON-valid 0.005, EM 0.000 — fenced, non-stopping JSON; fence-tolerant diagnostic EM 0.209.)
 - [ ] Run `mistral` baseline for task 3.
+      Estimate: eval ≈ 41–43 min (Saul's T3 baseline already ran almost to the 16-token cap: mean 14.6 generated
+      tokens, 2,441 s; generation length cannot exceed the cap) + setup ≈ 6–8 min → **≈ 47–51 min of GPU time**.
+      Results are written only at the end, so a session killed by an exhausted quota loses the whole run.
 - [x] Run `saul` baseline for task 1. (2026-10-06: answers "No" to all 2,208 → accuracy 0.747 = majority rate,
       macro-F1 0.43; see DESIGN.md run log.)
 - [x] Run `saul` baseline for task 2.
@@ -208,7 +211,8 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [x] Fine-tune `mistral` on task 1. (2026-10-07: 2.98 h, 1 full epoch; accuracy 0.972, macro-F1 0.964.)
 - [x] Fine-tune `mistral` on task 2. (2026-10-07: 1.06 h, 1 full epoch; JSON-valid 0.995, EM 0.718, F1 0.850.)
 - [x] Fine-tune `saul` on task 1. (2026-10-06: 3.06 h, 1 full epoch; accuracy 0.968, macro-F1 0.959.)
-- [ ] Fine-tune `mistral` on task 3 with the 7-hour time-budget callback (Llama T3 needed 6.1 h of it).
+- [x] Fine-tune `mistral` on task 3 with the 7-hour time-budget callback (Llama T3 needed 6.1 h of it).
+      Done 2026-10-08: 5.99 h, 1 full epoch; accuracy 0.768, macro-F1 0.749.
       (Budget is now 9 h, as for Saul T3.) Run before the Mistral T3 baseline (user's choice, 2026-10-07).
       Estimate from Saul T3 (identical tokenizer: 1,226 steps at 17.0 s/step = 5.79 h; Mistral ran −3 % / +7 %
       of Saul's step time on T1 / T2): training ≈ 5.8 h (5.6–6.2 h), eval ≈ 37 min, setup ≈ 10 min →
@@ -230,11 +234,13 @@ needs Saul-QLoRA versus Mistral-QLoRA.
       T1 done: 24 vs 15 discordant (Mistral / Saul), p = 0.20, macro-F1 Saul − Mistral −0.005 [−0.012, +0.002] → no significant difference.
       T2 done: 9 vs 13, p = 0.52, F1 diff +0.003 [−0.008, +0.013] → no significant difference; Mistral shares Saul's
       date advantage over Llama, so that gap is the tokenizer, not legal pretraining.
+      T3 done: 57 vs 53, p = 0.78, macro-F1 diff −0.002 [−0.012, +0.008] → no significant difference.
 - [ ] Run `compare` Mistral-finetune versus Mistral-baseline and versus Llama-adapter for each task (needed for the
       three-fine-tuned-model comparison in Phase 11).
       T1 done: vs baseline p = 3.7e-161, macro-F1 +0.385; vs Llama 20 / 42 discordant, p = 0.0071, macro-F1 +0.012 [+0.004, +0.021].
       T2 done: vs baseline 0 / 453, p = 8.6e-137, F1 +0.850; vs Llama 20 / 37, p = 0.033, F1 +0.033 [+0.015, +0.053]
       (dates only: 3 / 21 on dates, 17 / 16 elsewhere).
+      T3: vs Llama done (94 / 94, p = 1.0, macro-F1 −0.000 [−0.014, +0.013]); vs baseline pending the Mistral T3 baseline.
 - [x] Run `compare` Saul-finetune versus Llama-adapter for each task, the best-model comparison.
       T1 done: 27 vs 40 discordant, McNemar p = 0.142, macro-F1 diff +0.007 [−0.002, +0.016] → no significant difference.
       T2 done: 19 vs 40, p = 0.0086, F1 diff +0.036 [+0.017, +0.056] → Saul better, but only on the two date
