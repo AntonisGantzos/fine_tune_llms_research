@@ -302,12 +302,14 @@ legal-pretraining test (Saul QLoRA vs Mistral QLoRA) is a tie: 9 / 13 discordant
 | 2026-10-06 | `saul_t3_baseline` (full, 1,945) | **Valid-label 0.976, accuracy 0.059, macro-F1 0.043, micro-F1 0.060**; lenient valid 0.976. Eval 2,441 s (1.26 s/example, batch 8). 32/1,945 val inputs trimmed (input budget 584), as predicted on CPU. Saul almost always answers with a real label, but it collapses onto a few: "No Defaults" 1,129 times (58 %), "No Waivers" 287, "Assignments" 140, "Adjustments" 105; only 27 distinct labels used. The 47 invalid answers echo the label list (`[No Defaults]`, `[Adjustments, Agreements, ...`) or copy the provision. Compared with Llama zero-shot (notebook, bf16: valid-label 0.40, accuracy 0.065, macro-F1 0.066), Saul has the format but not the classification. Zero-shot, neither model is usable on T3. |
 | 2026-10-07 | `saul_t3_finetune` (full: 9,801 train, 1,945 val) | Pre-flight checks all OK (worst-case batch 2 × 1,017 tokens, peak 7.0 GB, projected 7.3 / 15.6 GB). 1,226 steps, 1.0 epoch, **5.79 h** (17.0 s/step; the smoke test's 20.9 s/step was pessimistic, so the old 7 h budget would also have sufficed), not stopped on budget. Final loss 0.249. **Valid-label 0.995, accuracy 0.766, macro-F1 0.748, micro-F1 0.767**; lenient valid also 0.995. The 9 invalid answers are plausible but non-existent labels ("Force Majeure", "Claw-Backs", "Laws"). Top confusions are near-synonymous label pairs, as for Llama: Jurisdictions → Consent To Jurisdiction 12, Definitions → Defined Terms 11, Tax Withholdings → Withholdings 9, Governing Laws → Applicable Laws 8. Eval 2,244 s (1.15 s/example). 210 train / 32 val inputs trimmed. |
 | 2026-10-08 | `mistral_t3_finetune` (full: 9,801 train, 1,945 val) | Run before the Mistral T3 baseline (user's choice). Pre-flight checks all OK (worst-case batch 2 × 1,017 tokens, peak 7.0 GB, projected 7.3 / 15.6 GB — same as Saul). 1,226 steps, 1.0 epoch, **5.99 h** (17.6 s/step; estimate was 5.8 h, range 5.6–6.2), not stopped on budget. Final loss 0.249 (Saul 0.249). **Valid-label 0.996, accuracy 0.768, macro-F1 0.749, micro-F1 0.769**. Per label, Mistral has the higher F1 on 39 labels and Saul on 38 (23 equal). Top confusions are the same near-synonym pairs (Definitions → Defined Terms 12, Applicable Laws → Governing Laws 10, Interpretations → Construction 10). Eval 2,308 s. 210 train / 32 val inputs trimmed, same as Saul. |
+| 2026-10-09 | `mistral_t3_baseline` (full, 1,945) | **Valid-label 0.007, accuracy 0.0005, macro-F1 0.001**; lenient valid 0.008. Eval 2,207 s (1.13 s/example; within the 47–51 min estimate for the whole session). 32/1,945 val inputs trimmed. Mistral **echoes the instruction's label list** instead of choosing: 1,735 answers start `[Adjustments, Agreements, Amendments, ...`; the rest are mostly bracketed labels (`[Applicable Laws]` 28, `[Waivers]` 11) or `### Explanation:`. Only 14 answers are a bare label (13 "Adjustments", the first label in the list). Diagnostic for the record only (strip one pair of brackets around a single label): valid 0.038, accuracy 0.014 — still far below Saul zero-shot (0.982 / 0.059 under the same rule). |
 
 ### T3 summary so far (validation, n = 1,945)
 
 | Arm | Valid-label | Accuracy | Macro-F1 | Micro-F1 | Source |
 |---|---:|---:|---:|---:|---|
 | Saul zero-shot | 0.976 | 0.059 | 0.043 | 0.060 | harness, fp16 |
+| Mistral zero-shot | 0.007 | 0.001 | 0.001 | 0.001 | harness, fp16 |
 | Llama zero-shot | 0.401 | 0.065 | 0.066 | 0.093 | original notebook, bf16 |
 | Saul QLoRA | 0.995 | 0.766 | 0.748 | 0.767 | harness, fp16 |
 | Mistral QLoRA | 0.996 | 0.768 | 0.749 | 0.769 | harness, fp16 |
@@ -322,6 +324,8 @@ legal-pretraining test (Saul QLoRA vs Mistral QLoRA) is a tie: 9 / 13 discordant
 | Llama QLoRA (re-scored) → Saul QLoRA | 104 / 100 | 0.83 | −0.002 [−0.016, +0.012] |
 | Mistral QLoRA → Saul QLoRA | 57 / 53 | 0.78 | −0.002 [−0.012, +0.008] |
 | Llama QLoRA (re-scored) → Mistral QLoRA | 94 / 94 | 1.0 | −0.000 [−0.014, +0.013] |
+| Mistral zero-shot → Saul zero-shot | 1 / 115 | 2.8e-33 | +0.042 [+0.033, +0.049] |
+| Mistral zero-shot → Mistral QLoRA | 1 / 1,493 | < 1e-300 | +0.749 [+0.726, +0.762] |
 
 **Llama re-score (Phase 8, 2026-10-07).** `llama_t3_adapter_adapter3`: valid-label 0.9964 (identical
 to the notebook), accuracy 0.7676 vs 0.7686 (2 of 1,945 examples), macro-F1 0.7498 vs 0.7509. The same
@@ -339,6 +343,23 @@ even so there is no Saul advantage.
 57 / 53 discordant (p = 0.78), Llama vs Mistral 94 / 94 (p = 1.0), and every macro-F1 CI is centred on 0.
 Mistral and Saul even end training at the same loss (0.249). On LEDGAR, the task closest to Saul's
 EDGAR pretraining data, legal pretraining adds nothing measurable after fine-tuning.
+
+Zero-shot T3 is the one place where Saul beats Mistral (115 vs 1 discordant, p = 2.8e-33): Saul answers
+with a single label 98 % of the time, Mistral echoes the label list. But this is a format gain, and Saul's
+own accuracy (0.059) is still unusable, so it does not survive fine-tuning.
+
+## Overall conclusion (all arms complete, 2026-10-09)
+
+| Task | Saul vs Mistral, zero-shot | Saul vs Mistral, QLoRA | Best QLoRA vs Llama QLoRA |
+|---|---|---|---|
+| T1 | Mistral better (macro-F1 −0.151 for Saul; Saul answers "No" to everything) | tie (p = 0.20) | Mistral ahead (p = 0.007); Saul tie (p = 0.14) |
+| T2 | both 0 EM strict; Mistral better under the fence-tolerant diagnostic | tie (p = 0.52) | Saul and Mistral ahead, on date labels only (tokenizer effect) |
+| T3 | Saul better on format (p = 2.8e-33), both unusable | tie (p = 0.78) | three-way tie |
+
+Legal domain pretraining (Saul-7B-Base vs its own base architecture, Mistral-7B) gives **no measurable
+gain after QLoRA on any task**, and zero-shot it helps on one task's format and hurts on another's. Every
+difference between the fine-tuned Mistral-family models and Llama is explained by the base model or the
+tokenizer, not legal pretraining. The contamination caveat applies to every Saul row.
 
 ## Canonical data (SHA-256)
 

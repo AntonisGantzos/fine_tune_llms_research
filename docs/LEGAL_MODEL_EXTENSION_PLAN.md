@@ -116,15 +116,17 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 
 ## Phase 4 — Package inputs for Kaggle
 
-- [ ] Create a private Kaggle dataset `legal-extension-code` containing `scripts/` and `requirements-kaggle.txt`.
-      Payload staged + verified (`kaggle/dataset_payload_ext_code/`: harness, `task*_metrics.py`, requirements);
-      upload pending — run `push_extension_datasets.ps1`.
-- [ ] Create a private Kaggle dataset `legal-extension-data` containing the six canonical JSONL files plus
+- [x] Create a private Kaggle dataset `legal-extension-code` containing `scripts/` and `requirements-kaggle.txt`.
+      Payload staged + verified (`kaggle/dataset_payload_ext_code/`: harness, `task*_metrics.py`, requirements).
+      Uploaded and used by every extension run (re-versioned after each harness change).
+- [x] Create a private Kaggle dataset `legal-extension-data` containing the six canonical JSONL files plus
       `data/LEDGAR/labels.json`, staged flat (no `--dir-mode zip`, like `ledgar-lexglue`).
-      Payload staged; all six files match the DESIGN.md SHA-256 table. Upload pending.
-- [ ] Create a private Kaggle dataset `llama-adapters` from `kaggle_output_task{1,2,3}_fine_tuned/llama-3.1-8B-*` (adapter files only, no `results/` checkpoints).
+      Payload staged; all six files match the DESIGN.md SHA-256 table.
+      Uploaded; SHA-256-checked before upload.
+- [x] Create a private Kaggle dataset `llama-adapters` from `kaggle_output_task{1,2,3}_fine_tuned/llama-3.1-8B-*` (adapter files only, no `results/` checkpoints).
       Payload staged flat as `taskN__adapter_config.json` / `taskN__adapter_model.safetensors` (the CLI skips or
-      flattens subfolders); the runner rebuilds the adapter folder in `/tmp`. Upload pending.
+      flattens subfolders); the runner rebuilds the adapter folder in `/tmp`.
+      Uploaded; all three adapters re-scored from it in Phase 8.
 - [x] Add a `kaggle/push_extension_datasets.ps1` script that versions all three datasets with one command,
       calling the CLI as `python -m kaggle`. (Creates a dataset on first use, versions it afterwards; `-StageOnly`, `-Only`.)
 
@@ -148,7 +150,8 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [x] Add a `-KernelDir` parameter to `kaggle/run.ps1` (default `kaggle/`) so it can push `kaggle/extension/`.
 - [x] Make `kaggle/run.ps1` download extension runs into `kaggle_output_extension/<model>_t<task>_<mode>/` and git-ignore that folder.
       (`-OutDir kaggle_output_extension`; each run lands in `kaggle_output_extension/runs/<model>_t<task>_<mode>[_smoke]/`.)
-- [ ] Set accelerator GPU T4×2 once for the new kernel on kaggle.com; never save from the web editor (it empties `dataset_sources`).
+- [x] Set accelerator GPU T4×2 once for the new kernel on kaggle.com; never save from the web editor (it empties `dataset_sources`).
+      Done via `kernel-metadata.json` (`machine_shape: NvidiaTeslaT4`); the runner pins one T4. Never saved from the web editor.
 
 ## Phase 6 — Smoke tests (cheap, run before any long job)
 
@@ -173,11 +176,14 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [ ] Run `llama` baseline for task 2 through the harness; it should reproduce JSON-valid 0.472 / EM 0.090 / F1 0.141 on 631.
 - [ ] Run `llama` baseline for task 3 through the harness, closing the old bf16 and prompt-truncation asymmetries
       of `llama_3.1_task_3_no_fine_tune.ipynb` (old: accuracy 0.065, macro-F1 0.066).
+      **Not run (Llama baselines T1–T3):** the free-tier Kaggle GPU quota was exhausted after the Mistral arms
+      (2026-10-09). The original bf16 notebook baselines are reported instead, without CIs or paired tests
+      (RESEARCH_PAPER.md §5.1 item 31). Each would take ≈ 0.3–1.5 h of GPU time if run later.
 - [x] Run `mistral` baseline for task 1.
       (2026-10-07: accuracy 0.675, macro-F1 0.578, strict-valid 0.987; vs Saul zero-shot macro-F1 −0.151 for Saul, p = 6e-11.)
 - [x] Run `mistral` baseline for task 2.
       (2026-10-07: strict JSON-valid 0.005, EM 0.000 — fenced, non-stopping JSON; fence-tolerant diagnostic EM 0.209.)
-- [ ] Run `mistral` baseline for task 3.
+- [x] Run `mistral` baseline for task 3. (2026-10-09: valid-label 0.007, accuracy 0.0005 — echoes the label list.)
       Estimate: eval ≈ 41–43 min (Saul's T3 baseline already ran almost to the 16-token cap: mean 14.6 generated
       tokens, 2,441 s; generation length cannot exceed the cap) + setup ≈ 6–8 min → **≈ 47–51 min of GPU time**.
       Results are written only at the end, so a session killed by an exhausted quota loses the whole run.
@@ -188,6 +194,7 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 - [x] Run `saul` baseline for task 3.
       Done 2026-10-06: valid-label 0.976, accuracy 0.059, macro-F1 0.043 (collapses onto "No Defaults").
 - [ ] Optionally run `saul-instruct` with `--chat` on each task, reported separately as non-matched prompts.
+      Not run (optional; no GPU quota left). Listed as future work (RESEARCH_PAPER.md §5.1 item 33, §5.2 item 21).
 
 ## Phase 8 — Re-score the existing Llama adapters
 
@@ -221,26 +228,28 @@ needs Saul-QLoRA versus Mistral-QLoRA.
       Smoke (200 train / 200 val, 2026-10-06): 20.9 s/step → full epoch (1,226 steps) ≈ 7.25 h, over 7 h. The harness
       budget is raised to 9 h (≈ 0.8 h eval + setup still leaves ~2 h of Kaggle's 12 h), so the epoch completes.
       Full run 2026-10-07: 5.79 h, 1 full epoch; accuracy 0.766, macro-F1 0.748.
-- [ ] Reject and re-run any run whose `train_metrics.json` shows `stopped_on_time_budget: true`.
+- [x] Reject and re-run any run whose `train_metrics.json` shows `stopped_on_time_budget: true`.
+      None did: all six fine-tunes completed one full epoch (`stopped_on_time_budget: false`).
 
 ## Phase 10 — Paired comparisons
 
-- [ ] Run `compare` Saul-baseline versus Mistral-baseline for each task, measuring legal pretraining without fine-tuning.
+- [x] Run `compare` Saul-baseline versus Mistral-baseline for each task, measuring legal pretraining without fine-tuning.
       T1 done: 216 vs 375 discordant (Mistral / Saul), p = 6.2e-11, but macro-F1 Saul − Mistral −0.151 [−0.175, −0.127]
       → Saul's accuracy edge is its all-"No" majority answer; Mistral is better on macro-F1.
       T2 done: strict EM 0 for both (0 / 0 discordant, p = 1.0); F1 Saul − Mistral +0.069 [+0.050, +0.089];
       fence-tolerant diagnostic reverses it (EM Mistral 0.209 vs Saul 0.084) — see DESIGN.md.
-- [ ] Run `compare` Saul-finetune versus Mistral-finetune for each task, the headline legal-pretraining comparison.
+      T3 done: 1 vs 115, p = 2.8e-33, macro-F1 +0.042 [+0.033, +0.049] → Saul better on format (Mistral echoes the label list); both unusable.
+- [x] Run `compare` Saul-finetune versus Mistral-finetune for each task, the headline legal-pretraining comparison.
       T1 done: 24 vs 15 discordant (Mistral / Saul), p = 0.20, macro-F1 Saul − Mistral −0.005 [−0.012, +0.002] → no significant difference.
       T2 done: 9 vs 13, p = 0.52, F1 diff +0.003 [−0.008, +0.013] → no significant difference; Mistral shares Saul's
       date advantage over Llama, so that gap is the tokenizer, not legal pretraining.
       T3 done: 57 vs 53, p = 0.78, macro-F1 diff −0.002 [−0.012, +0.008] → no significant difference.
-- [ ] Run `compare` Mistral-finetune versus Mistral-baseline and versus Llama-adapter for each task (needed for the
+- [x] Run `compare` Mistral-finetune versus Mistral-baseline and versus Llama-adapter for each task (needed for the
       three-fine-tuned-model comparison in Phase 11).
       T1 done: vs baseline p = 3.7e-161, macro-F1 +0.385; vs Llama 20 / 42 discordant, p = 0.0071, macro-F1 +0.012 [+0.004, +0.021].
       T2 done: vs baseline 0 / 453, p = 8.6e-137, F1 +0.850; vs Llama 20 / 37, p = 0.033, F1 +0.033 [+0.015, +0.053]
       (dates only: 3 / 21 on dates, 17 / 16 elsewhere).
-      T3: vs Llama done (94 / 94, p = 1.0, macro-F1 −0.000 [−0.014, +0.013]); vs baseline pending the Mistral T3 baseline.
+      T3: vs Llama done (94 / 94, p = 1.0, macro-F1 −0.000 [−0.014, +0.013]); vs baseline 1 / 1,493, p < 1e-300, macro-F1 +0.749 [+0.726, +0.762].
 - [x] Run `compare` Saul-finetune versus Llama-adapter for each task, the best-model comparison.
       T1 done: 27 vs 40 discordant, McNemar p = 0.142, macro-F1 diff +0.007 [−0.002, +0.016] → no significant difference.
       T2 done: 19 vs 40, p = 0.0086, F1 diff +0.036 [+0.017, +0.056] → Saul better, but only on the two date
@@ -252,19 +261,23 @@ needs Saul-QLoRA versus Mistral-QLoRA.
       T3 done: 19 vs 1,393, p < 1e-300, macro-F1 +0.705 [+0.682, +0.720].
 - [x] Use McNemar on per-example correctness (T1 accuracy, T2 exact match, T3 accuracy) and bootstrap 95% CIs for F1 metrics.
       (Implemented in `compare`: exact binomial McNemar + paired bootstrap; T1 uses accuracy + macro-F1.)
-- [ ] Add `scripts/collect_extension_results.py` merging every `eval_metrics.json` and `compare_*.json` into one CSV.
+- [x] Add `scripts/collect_extension_results.py` merging every `eval_metrics.json` and `compare_*.json` into one CSV.
+      Two CSVs (arms and paired tests have different columns): `kaggle_output_extension/extension_arms.csv` (18 arms,
+      incl. the original Llama zero-shot notebooks) and `extension_comparisons.csv` (18 tests). Values match DESIGN.md.
 
 ## Phase 11 — Analysis notebook
 
-- [ ] Create `extension_comparison.ipynb` loading the merged CSV from `kaggle_output_extension/`.
-- [ ] Add a section comparing the evaluation results of the three fine-tuned models (Llama-adapter, Mistral-finetune,
+- [x] Create `extension_comparison.ipynb` loading the merged CSV from `kaggle_output_extension/`.
+      Executes end to end on CPU (`python -m nbconvert --to notebook --execute`); per-arm CIs bootstrap each
+      run's `predictions.jsonl` with the harness scorers (2,000 resamples, seed 0).
+- [x] Add a section comparing the evaluation results of the three fine-tuned models (Llama-adapter, Mistral-finetune,
       Saul-finetune) on every task: headline metrics with 95% CIs, the three pairwise McNemar / bootstrap tests,
       and per-category (T1/T2) and per-label (T3) breakdowns.
-- [ ] Add a headline table per task: six arms, validity gate, headline metric, 95% CI.
-- [ ] Add a validity-versus-content chart separating format gains from content gains for tasks 2 and 3.
-- [ ] Add a task-3 per-label F1 comparison of Saul-finetune versus Mistral-finetune.
-- [ ] Add a task-2 per-category table excluding `Warranty Duration` (n=11) from the overall summary.
-- [ ] Add a task-1 table comparing lenient accuracy with the new strict-validity rate for every arm.
+- [x] Add a headline table per task: six arms, validity gate, headline metric, 95% CI.
+- [x] Add a validity-versus-content chart separating format gains from content gains for tasks 2 and 3.
+- [x] Add a task-3 per-label F1 comparison of Saul-finetune versus Mistral-finetune.
+- [x] Add a task-2 per-category table excluding `Warranty Duration` (n=11) from the overall summary.
+- [x] Add a task-1 table comparing lenient accuracy with the new strict-validity rate for every arm.
 
 ## Phase 12 — Contamination check
 
@@ -275,14 +288,19 @@ needs Saul-QLoRA versus Mistral-QLoRA.
 
 ## Phase 13 — Documentation and paper
 
-- [ ] Update the `README.md` and `CLAUDE.md` task-status tables: T1–T3 marked done, extension marked in progress.
-- [ ] Fix the contract count from 545 to 510 in `README.md` and `CLAUDE.md`, matching `master_clauses.csv`.
-- [ ] Fix the `README.md` LEDGAR description: LexGLUE 100-label config, stratified 100/label train (9,801) and 20/label validation (1,945).
-- [ ] Add the extension notebooks, scripts and output folder to the `README.md` layout and the `CLAUDE.md` notebook list.
-- [ ] Add an extension section to `docs/kaggle/kaggle_connection_guide.md` covering the three new datasets and `kaggle/extension/`.
-- [ ] Add a methodology subsection to `docs/RESEARCH_PAPER.md` describing the 3×2 design and the Mistral control.
-- [ ] Add an extension results subsection to `docs/RESEARCH_PAPER.md` with tables generated from the merged CSV.
-- [ ] Add the per-tokenizer trimming counts, the bf16-vs-fp16 Llama caveat and any `max_seq_len` change to the limitations section.
-- [ ] Add Mistral 7B (Jiang et al., 2023) and SaulLM-7B (Colombo et al., 2024) to the paper's references.
-- [ ] Add every new artifact path to the paper's Appendix A provenance table.
+- [x] Update the `README.md` and `CLAUDE.md` task-status tables: T1–T3 marked done, extension marked in progress.
+      (Extension marked done: all arms complete.)
+- [x] Fix the contract count from 545 to 510 in `README.md` and `CLAUDE.md`, matching `master_clauses.csv`.
+- [x] Fix the `README.md` LEDGAR description: LexGLUE 100-label config, stratified 100/label train (9,801) and 20/label validation (1,945).
+- [x] Add the extension notebooks, scripts and output folder to the `README.md` layout and the `CLAUDE.md` notebook list.
+- [x] Add an extension section to `docs/kaggle/kaggle_connection_guide.md` covering the three new datasets and `kaggle/extension/`.
+- [x] Add a methodology subsection to `docs/RESEARCH_PAPER.md` describing the 3×2 design and the Mistral control.
+      §3.4; abstract and §5 conclusions updated too.
+- [x] Add an extension results subsection to `docs/RESEARCH_PAPER.md` with tables generated from the merged CSV.
+      §4.3 (all arms with CIs, paired tests, findings incl. the T2 tokenizer analysis).
+- [x] Add the per-tokenizer trimming counts, the bf16-vs-fp16 Llama caveat and any `max_seq_len` change to the limitations section.
+      §5.1 F, items 28–34 (no `max_seq_len` change was made); items 2, 20, 22, 24 annotated as addressed.
+- [x] Add Mistral 7B (Jiang et al., 2023) and SaulLM-7B (Colombo et al., 2024) to the paper's references.
+      (SaulLM-7B was already listed; Mistral 7B added.)
+- [x] Add every new artifact path to the paper's Appendix A provenance table.
 - [ ] Open a pull request from `feature/legal-model-extension` once all phases are complete.

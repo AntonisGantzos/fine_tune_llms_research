@@ -15,8 +15,9 @@ Legal documents require a degree of domain comprehension that general LLMs often
 | Task | Goal | Dataset | Status |
 | :--- | :--- | :--- | :--- |
 | **T1 – Risk Clause Recognition** | Binary Yes/No: "Is this text a *[category]* clause?" across all CUAD risk-clause categories | CUAD | ✅ **Done** — trained, evaluated, and compared against the un-fine-tuned baseline |
-| **T2 – Structured Entity Extraction** | Extract 9 entity types (Parties, Agreement/Effective/Expiration Date, Governing Law, Renewal Term, etc.) as strict single-key JSON | CUAD | 🔄 **In progress** — pipeline notebook and train/validation JSONL ready; training run pending |
-| **T3 – Jurisdiction & Governing Law Identification** | Classify the provision type / governing law of a contract clause | LEDGAR | 🔄 **In progress** — pipeline notebook + LEDGAR data staged to Kaggle; training run pending |
+| **T2 – Structured Entity Extraction** | Extract 9 entity types (Parties, Agreement/Effective/Expiration Date, Governing Law, Renewal Term, etc.) as strict single-key JSON | CUAD | ✅ **Done** — trained, evaluated, and compared against the un-fine-tuned baseline |
+| **T3 – Provision-Type Classification** | Classify a contract provision into one of 100 LEDGAR labels (incl. governing law, jurisdiction) | LEDGAR | ✅ **Done** — trained, evaluated, and compared against the un-fine-tuned baseline |
+| **Extension – Legal-domain model** | Does legal pretraining help? Saul-7B-Base vs its base model Mistral-7B vs Llama-3.1-8B, zero-shot and QLoRA, on T1–T3 | CUAD + LEDGAR | ✅ **Done** — all 18 arms run; see below |
 
 ### T1 Results (Llama-3.1-8B, 2,208 validation examples)
 
@@ -28,22 +29,49 @@ Legal documents require a degree of domain comprehension that general LLMs often
 
 Fine-tuning details and per-class breakdowns: [finetune_vs_baseline_comparison.ipynb](finetune_vs_baseline_comparison.ipynb) and `kaggle_output/eval_report.txt`.
 
+### T2 and T3 Results (Llama-3.1-8B)
+
+| Task | Metric | Fine-tuned (QLoRA) | Base model (no fine-tune) |
+| :--- | :--- | :--- | :--- |
+| T2 (631 examples) | JSON-valid / Exact match / F1 | **0.997 / 0.691 / 0.819** | 0.472 / 0.090 / 0.141 |
+| T3 (1,945 examples, 100 labels) | Accuracy / Macro-F1 | **0.769 / 0.751** | 0.065 / 0.066 |
+
+### Extension: legal-domain pretraining (Saul-7B-Base vs Mistral-7B vs Llama-3.1-8B)
+
+All three models were fine-tuned with the identical QLoRA recipe, data, prompts and scoring
+([docs/extension/DESIGN.md](docs/extension/DESIGN.md)). Headline metric: T1 macro-F1, T2 mean F1, T3 macro-F1.
+
+| Task | Llama-3.1-8B QLoRA | Mistral-7B QLoRA | Saul-7B QLoRA | Saul vs Mistral (paired McNemar) |
+| :--- | :--- | :--- | :--- | :--- |
+| T1 | 0.951 | **0.964** | 0.959 | tie (p = 0.20) |
+| T2 | 0.818 | 0.850 | **0.853** | tie (p = 0.52) |
+| T3 | **0.750** | 0.749 | 0.748 | tie (p = 0.78) |
+
+**Legal pretraining gives no measurable gain after fine-tuning on any task.** Saul and Mistral beat Llama on
+T2 only on two date categories whose labels are digit strings — a tokenizer effect, not legal knowledge.
+Zero-shot, no model is usable. Analysis: [extension_comparison.ipynb](extension_comparison.ipynb).
+
 ## Repository Layout
 
 ```
 ├── CUAD_dataset_exploration.ipynb        # EDA: class imbalance, context lengths, format preview
 ├── llm_fine_tuning_LORA_task1_v2.ipynb   # T1: CSV → JSONL → QLoRA fine-tune → eval
 ├── llm_fine_tuning_LORA_task2.ipynb      # T2: same pipeline for entity extraction
-├── llm_fine_tuning_LORA_task3.ipynb      # T3: LEDGAR provision classification (current Kaggle target)
+├── llm_fine_tuning_LORA_task3.ipynb      # T3: LEDGAR provision classification
 ├── llama_3.1_task_1_no_fine_tune.ipynb   # T1 baseline: base model on the same validation set
 ├── kaggle_results_visualization.ipynb    # Plots for a single training-run directory
 ├── finetune_vs_baseline_comparison.ipynb # T1 fine-tuned vs. baseline comparison
+├── legal_model_extension_runner.ipynb    # Extension: runs one {model} × {zero-shot, QLoRA} arm on Kaggle
+├── extension_comparison.ipynb            # Extension: analysis of all arms (CPU only)
 ├── cuad/                                 # Generated train/validation JSONL (T1 + T2)
+├── ledgar/                               # Generated train/validation JSONL (T3)
 ├── data/CUAD_v1/                         # Raw CUAD data (git-ignored; see scripts/download_cuad.py)
 ├── data/LEDGAR/                          # Raw LEDGAR splits + labels.json (T3; git-ignored)
-├── kaggle/                               # Remote-GPU runner: push kernel, pull outputs
-├── kaggle_output/                        # Downloaded run artifacts: adapter, metrics, logs (git-ignored)
-├── scripts/                              # download_cuad.py, preprocess_values_cuad.py, sampling
+├── kaggle/                               # Remote-GPU runner: push kernel, pull outputs (kaggle/extension/: extension kernel)
+├── kaggle_output*/                       # Downloaded run artifacts: adapter, metrics, logs (git-ignored)
+│                                         #   kaggle_output_extension/runs/: one folder per extension arm + compare_*.json
+├── scripts/                              # data prep; extension harness legal_model_extension.py, task{1,2,3}_metrics.py,
+│                                         #   collect_extension_results.py, test_extension_scoring.py
 └── docs/                                 # Design docs per task + data processing + Kaggle workflow
 ```
 
@@ -60,18 +88,19 @@ Notebooks are environment-aware (`ON_KAGGLE` flag) so the same file runs in both
 ## Datasets
 
 ### 1. CUAD (Contract Understanding Atticus Dataset) — Tasks 1 & 2
-*   **Description:** An expert-annotated NLP dataset for legal contract review: 545 contracts annotated across 41 clause categories (`master_clauses.csv`).
+*   **Description:** An expert-annotated NLP dataset for legal contract review: 510 contracts annotated across 41 clause categories (`master_clauses.csv`).
 *   **How it is used here:** each `[Category]` / `[Category]-Answer` column pair becomes instruction-tuning examples. A cleaned CSV (`master_clauses_cleaned.csv`) replaces empty-negative placeholders with real non-related clause text so T1 sees hard "No" examples. The train/validation split is **contract-level (85/15)** to prevent leakage.
 *   **Reference:** *CUAD: An Expert-Annotated NLP Dataset for Legal Contract Review* (NeurIPS 2021) by The Atticus Project.
 
-### 2. LEDGAR (Labeled EDGAR) — Task 3 (in progress)
-*   **Description:** A large-scale multi-label corpus of ~850,000 contract provisions scraped from SEC filings, labeled with over 12,000 categories.
+### 2. LEDGAR (Labeled EDGAR) — Task 3
+*   **Description:** contract provisions scraped from SEC EDGAR filings, each labeled with its provision type. This project uses the **LexGLUE** single-label configuration (100 labels, 60k/10k/10k train/validation/test).
+*   **How it is used here:** a stratified sample of **100 provisions per label for training (9,801)** and **20 per label for validation (1,945)**; the model answers with exactly one label from the 100-label list given in the instruction.
 *   **Reference:** *LEDGAR: A Large-Scale Multi-label Corpus for Text Classification of Legal Provisions in Contracts* (LREC 2020) by Tuggener et al.
 
 ## Methodology & Techniques
 
 *   **QLoRA:** the base model is loaded in 4-bit NF4 quantization (`BitsAndBytesConfig`) and adapted with LoRA (`r=16`, `lora_alpha=16`, targets `q/k/v/o_proj`) — memory for Llama-3.1-8B drops to fit a T4, and only the small adapter is trained and saved.
-*   **Model:** `meta-llama/Meta-Llama-3.1-8B` for production runs; `meta-llama/Llama-3.2-1B` as a fast smoke-test in the same notebooks.
+*   **Model:** `meta-llama/Meta-Llama-3.1-8B` for production runs; `meta-llama/Llama-3.2-1B` as a fast smoke-test in the same notebooks. The extension adds `mistralai/Mistral-7B-v0.1` and the legal-domain `Equall/Saul-7B-Base` (Mistral-7B further pretrained on legal text), run through one harness (`scripts/legal_model_extension.py`) with fp16 compute on a single T4.
 *   **Prompt Engineering:** instructions are baked into the training data using an `### Instruction / ### Input / ### Response` template; T1 constrains output to strict `Yes`/`No`, T2 to a single-key JSON object.
 
 ## Evaluation Metrics
@@ -79,6 +108,8 @@ Notebooks are environment-aware (`ON_KAGGLE` flag) so the same file runs in both
 *   **Accuracy / F1 / Precision / Recall** per class for T1 (macro-F1 is the headline number given the Yes/No imbalance), plus a confusion matrix.
 *   **JSON Validity Score** for T2 — percentage of generations that parse as valid JSON with the expected single key.
 *   **Exact Match (EM)** for rigid entities (dates, names) and **F1** for longer extractions where partial credit applies.
+*   **Accuracy / macro-F1 over 100 labels** for T3, plus the valid-label rate.
+*   **Paired significance tests** for model comparisons (extension): McNemar's exact test on per-example correctness and a paired-bootstrap 95% CI on the F1 difference.
 
 ## Getting Started
 

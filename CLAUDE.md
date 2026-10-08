@@ -8,8 +8,9 @@ Research project for fine-tuning LLMs on legal contract review tasks using QLoRA
 
 **Three tasks:**
 - **T1 – Risk Clause Recognition:** Binary Yes/No clause identification from CUAD (all clause categories not used by T2). **Implemented and evaluated** — fine-tuned vs. baseline comparison done.
-- **T2 – Structured Entity Extraction:** Extract dates/names/terms as valid JSON (9 categories: Document Name, Parties, Agreement Date, Effective Date, Expiration Date, Renewal Term, Notice Period To Terminate Renewal, Governing Law, Warranty Duration) from CUAD. **In progress** — notebook and JSONL generation exist; training run pending.
-- **T3 – Jurisdiction Identification:** Provision classification from LEDGAR. **In progress** — notebook [llm_fine_tuning_LORA_task3.ipynb](llm_fine_tuning_LORA_task3.ipynb) exists, LEDGAR data staged as a Kaggle dataset, and `kaggle/kernel-metadata.json` currently targets this notebook; training run pending.
+- **T2 – Structured Entity Extraction:** Extract dates/names/terms as valid JSON (9 categories: Document Name, Parties, Agreement Date, Effective Date, Expiration Date, Renewal Term, Notice Period To Terminate Renewal, Governing Law, Warranty Duration) from CUAD. **Implemented and evaluated** — fine-tuned vs. baseline comparison done ([task2_finetune_vs_baseline_comparison.ipynb](task2_finetune_vs_baseline_comparison.ipynb)).
+- **T3 – Provision-Type Classification:** 100-label provision classification from LEDGAR (LexGLUE config; stratified 100/label train = 9,801, 20/label validation = 1,945). **Implemented and evaluated** — notebook [llm_fine_tuning_LORA_task3.ipynb](llm_fine_tuning_LORA_task3.ipynb), comparison in [task3_finetune_vs_baseline_comparison.ipynb](task3_finetune_vs_baseline_comparison.ipynb).
+- **Legal-model extension:** {Llama-3.1-8B, Mistral-7B, Saul-7B-Base} × {zero-shot, QLoRA} on T1–T3 through one harness (`scripts/legal_model_extension.py`, kernel `kaggle/extension/`). **Done** — all arms run; result: legal pretraining gives no measurable gain after fine-tuning. Design, run log and results: [docs/extension/DESIGN.md](docs/extension/DESIGN.md); plan: [docs/LEGAL_MODEL_EXTENSION_PLAN.md](docs/LEGAL_MODEL_EXTENSION_PLAN.md).
 
 ## Environment Setup
 
@@ -32,7 +33,7 @@ Notes:
 ## Data Layout
 
 The `DATA_DIR` environment variable controls the data root (defaults to `data`). Raw CUAD lives at `data/CUAD_v1/` (git-ignored):
-- `data/CUAD_v1/master_clauses.csv` — primary source (545 contracts, 41 clause categories)
+- `data/CUAD_v1/master_clauses.csv` — primary source (510 contracts, 41 clause categories)
 - `data/CUAD_v1/master_clauses_cleaned.csv` — preprocessed version used by the training notebooks (negative placeholders replaced with real non-related text)
 - `data/CUAD_v1/master_clauses_cleaned_sampled.csv` — small sample for quick iteration
 - `data/CUAD_v1/CUAD_v1.json` — SQuAD-format JSON (EDA only, not for training)
@@ -48,10 +49,13 @@ Helper scripts in `scripts/`: `download_cuad.py`, `preprocess_values_cuad.py` (p
 - [CUAD_dataset_exploration.ipynb](CUAD_dataset_exploration.ipynb) — EDA: class imbalance, context lengths, instruction-format preview
 - [llm_fine_tuning_LORA_task1_v2.ipynb](llm_fine_tuning_LORA_task1_v2.ipynb) — **T1 training pipeline**: cleaned CSV → JSONL → QLoRA fine-tune via `SFTTrainer` → validation eval (`eval_metrics.json`, `eval_report.txt`)
 - [llm_fine_tuning_LORA_task2.ipynb](llm_fine_tuning_LORA_task2.ipynb) — **T2 training pipeline**, same structure as T1 v2 (33 cells, mirrors it deliberately)
-- [llm_fine_tuning_LORA_task3.ipynb](llm_fine_tuning_LORA_task3.ipynb) — **T3 training pipeline** (LEDGAR provision classification); builds JSONL on Kaggle from the staged LEDGAR splits. Current `kernel-metadata.json` target.
-- [llama_3.1_task_1_no_fine_tune.ipynb](llama_3.1_task_1_no_fine_tune.ipynb) — T1 **baseline**: evaluates the un-fine-tuned base model on the same validation set; writes to `no_finetune_baseline/`
+- [llm_fine_tuning_LORA_task3.ipynb](llm_fine_tuning_LORA_task3.ipynb) — **T3 training pipeline** (LEDGAR provision classification); builds JSONL on Kaggle from the staged LEDGAR splits. `kernel-metadata.json` target.
+- [llama_3.1_task_1_no_fine_tune.ipynb](llama_3.1_task_1_no_fine_tune.ipynb) — T1 **baseline**: evaluates the un-fine-tuned base model on the same validation set; writes to `no_finetune_baseline/`. T2/T3 equivalents: [llama_3.1_task_2_no_fine_tune.ipynb](llama_3.1_task_2_no_fine_tune.ipynb), [llama_3.1_task_3_no_fine_tune.ipynb](llama_3.1_task_3_no_fine_tune.ipynb)
+- [LEDGAR_dataset_exploration.ipynb](LEDGAR_dataset_exploration.ipynb) — T3 EDA (label distribution, instruction token counts)
 - [kaggle_results_visualization.ipynb](kaggle_results_visualization.ipynb) — visualizes one run directory (point `RESULTS_DIR` at e.g. `kaggle_output/`)
-- [finetune_vs_baseline_comparison.ipynb](finetune_vs_baseline_comparison.ipynb) — compares fine-tuned vs. baseline T1 metrics from `kaggle_output/`
+- [finetune_vs_baseline_comparison.ipynb](finetune_vs_baseline_comparison.ipynb) — compares fine-tuned vs. baseline T1 metrics from `kaggle_output/`; [task2_finetune_vs_baseline_comparison.ipynb](task2_finetune_vs_baseline_comparison.ipynb) / [task3_finetune_vs_baseline_comparison.ipynb](task3_finetune_vs_baseline_comparison.ipynb) do the same for T2/T3
+- [legal_model_extension_runner.ipynb](legal_model_extension_runner.ipynb) — extension: runs **one** arm on Kaggle (edit only its parameters cell: `TASK`, `MODEL`, `MODE`, `ADAPTER`)
+- [extension_comparison.ipynb](extension_comparison.ipynb) — legal-model extension analysis ({Llama, Mistral, Saul} × {zero-shot, QLoRA}, incl. the three fine-tuned models); CPU only. Run `python scripts/collect_extension_results.py` first to refresh its CSVs in `kaggle_output_extension/`
 
 Training notebooks are **environment-aware**: a config cell sets `ON_KAGGLE = Path("/kaggle").exists()` and derives `DATA_DIR`/`WORK_DIR` from it. Reads go through `DATA_DIR`, writes through `WORK_DIR` (`/kaggle/working` on Kaggle — the only writable/persisted dir). Keep this pattern when editing.
 
@@ -66,8 +70,9 @@ Batch remote execution — push notebook, Kaggle runs it top-to-bottom, pull out
 
 Key facts:
 - Always invoke the CLI as **`python -m kaggle`** (the `kaggle.exe` shim is blocked by Windows Application Control on this machine).
-- `kaggle/kernel-metadata.json` → `code_file` selects **which notebook** gets pushed (currently the T3 notebook); edit it to switch tasks/runs. Keep the same `id` to overwrite that kernel, use a new `id` for a separate kernel.
+- `kaggle/kernel-metadata.json` → `code_file` selects **which notebook** gets pushed (the T3 notebook); edit it to switch tasks/runs. Keep the same `id` to overwrite that kernel, use a new `id` for a separate kernel.
 - **Three datasets**, mounted read-only at `/kaggle/input/<slug>`: `cuad-master-clauses-cleaned` (T1/T2, uploaded with `--dir-mode zip` → subfolder flattened, so notebooks have a CSV fallback search), `ledgar-lexglue` (T3, staged flat, **no** `--dir-mode zip`), and the private `hf-token`.
+- **Extension kernel** (`kaggle/extension/kernel-metadata.json` → `legal_model_extension_runner.ipynb`) attaches `legal-extension-code` (harness + `requirements-kaggle.txt`), `legal-extension-data` (the six canonical JSONL + `labels.json`), `llama-adapters` and `hf-token`; versioned by `.\kaggle\push_extension_datasets.ps1`. Edit only the runner's parameters cell, then `.\kaggle\run.ps1 -KernelDir kaggle\extension -OutDir kaggle_output_extension -Wait`. Kaggle mounts these at `/kaggle/input/datasets/<user>/<slug>/`; the runner finds files by name.
 - **HF token is delivered as the private `hf-token` dataset, not a web Secret** — the API can't attach secrets, and clicking *Save Version* in the web editor silently empties `dataset_sources`. `get_hf_token()` reads `/kaggle/input/*/hf_token.txt`, falling back to the Secrets vault, then local `.env`. Never save from the web editor; drive runs from the CLI.
 - Local edits are invisible until pushed; save the notebook file before `run.ps1`.
 - Use accelerator **GPU T4×2** (set once per kernel in the notebook's Settings on kaggle.com).
@@ -125,6 +130,7 @@ Key settings (same in T1 v2 and T2 notebooks):
 - `docs/task_2/` — T2 logic, entity-extraction plan, notebook cell guide
 - `docs/kaggle/` — **`kaggle_connection_guide.md`** (how the connection works + step-by-step run guide) and `pipeline_state_and_kaggle_interaction.md` (T1 end-to-end run record)
 - `docs/data_processing/` — CUAD data roles, contract→clause mapping, table→examples
+- `docs/extension/` — legal-model extension design, run log, paired tests and conclusions (`DESIGN.md`)
 - `docs/MODEL_SELECTION.md`, `docs/GPU_SCALING_OPTIONS.md`, `docs/llm_finetuning_parameters.md`
 
 ## Important Data Decisions

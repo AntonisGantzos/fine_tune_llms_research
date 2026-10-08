@@ -144,6 +144,46 @@ Everything the run wrote to `/kaggle/working/` lands in `kaggle_output\`: the tr
 (`adapter_model.safetensors`, `adapter_config.json`), `eval_metrics.json`, `eval_report.txt`,
 `train_metrics.json`, the rendered notebook, and the log.
 
+### G. Legal-model extension runs (Llama / Mistral / Saul grid)
+
+The extension uses its **own kernel**, `kaggle/extension/kernel-metadata.json`
+(`antonisgantzos/legal-model-extension-runner`, private, GPU T4, internet on), whose `code_file` is
+`../../legal_model_extension_runner.ipynb`. It attaches four private datasets:
+
+| Dataset | Contents | Built from |
+|---|---|---|
+| `legal-extension-code` | `legal_model_extension.py`, `task{1,2,3}_metrics.py`, `requirements-kaggle.txt` | `scripts/`, repo root |
+| `legal-extension-data` | the six canonical train/validation JSONL + LEDGAR `labels.json` | `kaggle_output_task*_fine_tuned/` (LF bytes), `data/LEDGAR/` |
+| `llama-adapters` | `taskN__adapter_config.json` / `taskN__adapter_model.safetensors` for the three Llama adapters | `kaggle_output_task*_fine_tuned/llama-3.1-8B-*` |
+| `hf-token` | `hf_token.txt` (as in §A) | — |
+
+```powershell
+# Stage, SHA-256-check against docs/extension/DESIGN.md, then create-or-version all three datasets.
+# Re-run with -Only code after any change to scripts/ (the harness runs from the dataset, not the repo).
+.\kaggle\push_extension_datasets.ps1 -Message "harness v1"
+.\kaggle\push_extension_datasets.ps1 -Only code -Message "fix"
+
+# One arm per session: edit ONLY the runner's parameters cell (TASK, MODEL, MODE, ADAPTER), save, then
+.\kaggle\run.ps1 -KernelDir kaggle\extension -OutDir kaggle_output_extension -Wait
+```
+
+Each run lands in `kaggle_output_extension\runs\<model>_t<task>_<mode>[_adapterN][_smoke]\`
+(`eval_metrics.json`, `predictions.jsonl`, `run_config.json`, `run.log`, `pip_freeze.txt`, and for fine-tunes
+`train_metrics.json` + `adapter\`). Paired tests and the merged tables are made locally on CPU:
+
+```powershell
+python scripts\legal_model_extension.py compare --task 1 --a <run dir A> --b <run dir B> --n_boot 2000 `
+       --out kaggle_output_extension\runs\compare_t1_<A>_vs_<B>.json   # T3 also needs --labels_file data\LEDGAR\labels.json
+python scripts\collect_extension_results.py    # -> kaggle_output_extension\extension_{arms,comparisons}.csv
+```
+
+Notes from the runs (2026-10): Kaggle mounts these datasets at `/kaggle/input/datasets/<user>/<slug>/`
+(the runner finds files by name, so layout changes do not matter); the runner pins one T4 with
+`CUDA_VISIBLE_DEVICES=0`; Mistral and Saul ship without a pad token (the harness sets `pad = eos`);
+Saul's weights are 29 GB fp32, so the HF cache must stay off `/kaggle/working`. Measured session times
+on one T4: zero-shot 15–85 min, fine-tunes 1.0 h (T2), 3.0 h (T1), 5.8–6.0 h (T3) plus ~35 min eval.
+Results are written only at the end of a session, so a run cut off by Kaggle's weekly GPU quota is lost.
+
 ---
 
 ## 3. Fast troubleshooting
@@ -156,4 +196,5 @@ Everything the run wrote to `/kaggle/working/` lands in `kaggle_output\`: the tr
 | Inputs detached after a run | Someone clicked **Save Version** in the web editor. Re-push from the CLI; never save from the web UI. |
 | HF 401 / gated model error | Token missing/invalid, or the license isn't accepted on that HF account. |
 | Device / DataParallel error on `cuda:1` | Accelerator isn't GPU T4×2, or the GPU-masking first cell didn't run. |
+| Extension run uses old harness code | `legal-extension-code` was not re-versioned after editing `scripts/`; run `push_extension_datasets.ps1 -Only code`, wait until `ready`, re-push. |
 | Task 3 dataset upload builds a broken path | Don't use a forward slash in `-p` for the LEDGAR payload; run from `kaggle\` with `-p dataset_payload_ledgar`. |

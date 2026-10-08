@@ -6,7 +6,7 @@
 
 ## 1. Abstract
 
-This study asks whether a general-purpose open-weight large language model can be adapted to three legal contract-review tasks using only free, consumer-grade compute. One base checkpoint, Meta-Llama-3.1-8B, was fine-tuned separately per task with QLoRA (4-bit NF4 quantisation plus a rank-16 LoRA adapter) on a single Kaggle Tesla T4. The tasks were binary risk-clause recognition and nine-category JSON entity extraction, both from CUAD, and 100-way provision classification from LexGLUE's LEDGAR. Each adapter was scored against the identical un-adapted base model on the same held-out validation examples, prompts and decoding settings. Fine-tuning improved macro-F1 from .536 to .951 (task 1), token-F1 from .141 to .819 (task 2) and macro-F1 from .066 to .751 (task 3). Much of the gain is output-format compliance rather than legal comprehension: valid-output rates rose from .472 to .997 and .401 to .996. Results are single-run, single-seed, validation-only.
+This study asks whether a general-purpose open-weight large language model can be adapted to three legal contract-review tasks using only free, consumer-grade compute. One base checkpoint, Meta-Llama-3.1-8B, was fine-tuned separately per task with QLoRA (4-bit NF4 quantisation plus a rank-16 LoRA adapter) on a single Kaggle Tesla T4. The tasks were binary risk-clause recognition and nine-category JSON entity extraction, both from CUAD, and 100-way provision classification from LexGLUE's LEDGAR. Each adapter was scored against the identical un-adapted base model on the same held-out validation examples, prompts and decoding settings. Fine-tuning improved macro-F1 from .536 to .951 (task 1), token-F1 from .141 to .819 (task 2) and macro-F1 from .066 to .751 (task 3). Much of the gain is output-format compliance rather than legal comprehension: valid-output rates rose from .472 to .997 and .401 to .996. An extension repeats every arm with Mistral-7B and its legal-domain continuation Saul-7B-Base under the identical recipe. After fine-tuning, Saul ties Mistral on all three tasks (paired McNemar p = .20, .52, .78), so legal-domain pretraining gives no measurable gain. Results are single-run, single-seed, validation-only.
 
 ---
 
@@ -403,6 +403,37 @@ Two asymmetries were found during this review and are *not* resolved; they are r
 
 The remote-execution workflow itself is documented in `docs/kaggle/kaggle_connection_guide.md`: `kaggle/kernel-metadata.json` selects which notebook is pushed, data and the Hugging Face token are mounted as read-only Kaggle datasets, and `kaggle/run.ps1 -Wait` pushes, polls and downloads the artifacts.
 
+### 3.4 Extension — does legal-domain pretraining help?
+
+The study above adapts one general-purpose model. A natural objection is that a model *pretrained on legal text* should start closer to these tasks and finish ahead of it. The extension tests that directly with a 3 × 2 grid: three base models, each evaluated **zero-shot** and after **QLoRA**, on all three tasks (18 arms).
+
+| Model | Hugging Face repo | Role in the design | Licence |
+| :--- | :--- | :--- | :--- |
+| Llama-3.1-8B | `meta-llama/Meta-Llama-3.1-8B` | the original study's model; its three adapters are re-scored, not re-trained | Llama 3.1 Community |
+| Mistral-7B | `mistralai/Mistral-7B-v0.1` | **the control**: the base model Saul was built from | Apache-2.0 |
+| Saul-7B-Base | `Equall/Saul-7B-Base` | Mistral-7B further pretrained on legal text (Colombo et al., 2024) | MIT |
+
+**Why the Mistral control is needed.** Saul differs from Llama in architecture, size, tokenizer and pretraining data all at once, so a Saul-versus-Llama difference cannot be attributed to the legal pretraining. Saul *continues* the pretraining of Mistral-7B (Jiang et al., 2023), keeping its architecture and tokenizer — verified here: the two tokenizers have the same 32,000-entry vocabulary and special tokens and produce identical token ids on every validation example of all three tasks. **Saul QLoRA versus Mistral QLoRA is therefore the headline comparison**: the only difference between the arms is the legal pretraining. Zero-shot arms are compared only with zero-shot arms, and fine-tuned with fine-tuned; comparing zero-shot Saul with fine-tuned Llama would mostly measure answer-format adherence.
+
+**One harness for every arm.** All 18 arms run through a single script, `scripts/legal_model_extension.py`, with modes `baseline` (zero-shot), `finetune` (QLoRA, then evaluate) and `adapter` (load a saved adapter from disk and evaluate). The prompt template, answer parsing and metrics are not re-implemented: they are extracted from the three task notebooks into `scripts/task{1,2,3}_metrics.py` and verified on CPU to reproduce every saved Llama `eval_metrics.json` exactly. A Kaggle notebook (`legal_model_extension_runner.ipynb`) runs one arm per session. The following are held identical across all arms:
+
+- **Data:** the six canonical train/validation JSONL files — the exact files the Llama runs consumed — checked by SHA-256 before upload.
+- **Training:** the original recipe unchanged — 4-bit NF4 (no double quantisation), LoRA r = 16 / α = 16 / dropout 0.05 on `q/k/v/o_proj`, one epoch, lr 2 × 10⁻⁴, weight decay 0.001, `paged_adamw_32bit`, completion-only loss, seed 42; batch 1 × accumulation 8 for T1/T2 and 2 × 4 with length grouping for T3.
+- **Decoding:** greedy, `max_new_tokens` 3 / 128 / 16 for T1 / T2 / T3, `max_seq_len` 1,024.
+
+Four deliberate departures from the original notebooks make the arms comparable rather than merely similar:
+
+1. **fp16 compute everywhere**, including re-scoring the Llama T1/T2 adapters that were trained in bf16 (§5.1, item 21).
+2. **Input-text trimming for every task.** Task 3's guard (§3.3.1) is applied to T1 and T2 too, with the budget computed per tokenizer, so no prompt loses its `### Response:` cue.
+3. **A strict-validity rate for T1** (first line exactly `Yes`/`No`) is reported beside the notebooks' lenient accuracy.
+4. **Per-example predictions are saved**, which makes paired tests possible.
+
+The T3 training-time guard was raised from 7 h to 9 h after a Saul timing smoke test projected 7.25 h. That limit is a cap, and no run reached it.
+
+**Paired tests.** Every comparison is paired, because all arms score the same examples in the same order. Per-example correctness (T1 accuracy, T2 exact match, T3 accuracy) is compared with McNemar's exact test on the discordant pairs (Dietterich, 1998). The headline-F1 difference (T1 macro-F1, T2 mean token-F1, T3 macro-F1 over all 100 labels) gets a 95% paired-bootstrap interval from 2,000 resamples with seed 0 (Efron & Tibshirani, 1993). Each task has three fine-tuned pairs tested on the same data, so a single p near 0.01–0.05 is weak evidence; the Bonferroni threshold is 0.0167.
+
+**Contamination.** Saul's pretraining corpus includes SEC EDGAR filings (about 5B tokens; Colombo et al., 2024, Table 1), and both CUAD and LEDGAR are EDGAR-derived. No decontamination is reported, so any Saul advantage would be suspect. As §4.3 shows, there is none to explain.
+
 ---
 
 ## 4. Results
@@ -576,6 +607,73 @@ Three conclusions hold across all three tasks:
 2. **A large share of every headline delta is output discipline, not legal reasoning.** This is the single most important caveat on the whole result set, and it is quantified rather than asserted: 59.9% of baseline T3 predictions and 52.8% of baseline T2 predictions were not valid answers at all. Where the data allows the two to be separated — T2's conditional exact match — content quality still improves substantially (0.191 → 0.693), so the gain is not *only* formatting. T1 and T3 offer no equivalent decomposition.
 3. **The baselines are fair, which is what makes the deltas quotable.** Same checkpoint, same prompt including T3's full label menu, same examples verified record by record, same greedy decoding, same scoring code. The two residual asymmetries found in this review are stated in §5.1 rather than buried.
 
+### 4.3 Extension results — Llama vs Mistral vs Saul
+
+All figures come from `kaggle_output_extension/extension_arms.csv` and `extension_comparisons.csv`, which `scripts/collect_extension_results.py` builds from each arm's run directory. Tables and charts are in `extension_comparison.ipynb`. "Llama QLoRA" means the original adapter re-scored through the harness in fp16. It matches the notebook figures to within two examples per task: T1 accuracy 0.9620 vs 0.9615, T2 exact match 0.691 identical, T3 accuracy 0.7676 vs 0.7686. This also closes §5.1 item 20, because every adapter now reproduces its result when loaded from disk. "Llama zero-shot" is the original bf16 notebook baseline. It has no per-example predictions, so it carries no CI and appears in no paired test.
+
+#### 4.3.1 All arms
+
+| Task | Arm | Model | Validity | Correctness | Headline F1 [95% CI] |
+| :--- | :--- | :--- | ---: | ---: | :--- |
+| T1 (n = 2,208) | zero-shot | Llama-3.1-8B | n/a | 0.561 | 0.535 |
+| | zero-shot | Mistral-7B | 0.987 | 0.675 | 0.578 [0.555, 0.601] |
+| | zero-shot | Saul-7B | 1.000 | 0.747 | 0.428 [0.422, 0.434] |
+| | QLoRA | Llama-3.1-8B | 1.000 | 0.962 | 0.951 [0.941, 0.961] |
+| | QLoRA | Mistral-7B | 1.000 | **0.972** | **0.964** [0.955, 0.972] |
+| | QLoRA | Saul-7B | 1.000 | 0.968 | 0.959 [0.949, 0.968] |
+| T2 (n = 631) | zero-shot | Llama-3.1-8B | 0.472 | 0.090 | 0.141 |
+| | zero-shot | Mistral-7B | 0.005 | 0.000 | 0.000 [0.000, 0.000] |
+| | zero-shot | Saul-7B | 0.097 | 0.000 | 0.069 [0.050, 0.089] |
+| | QLoRA | Llama-3.1-8B | 0.997 | 0.691 | 0.818 [0.787, 0.846] |
+| | QLoRA | Mistral-7B | 0.995 | 0.718 | 0.850 [0.823, 0.875] |
+| | QLoRA | Saul-7B | 0.995 | **0.724** | **0.853** [0.826, 0.878] |
+| T3 (n = 1,945) | zero-shot | Llama-3.1-8B | 0.401 | 0.065 | 0.066 |
+| | zero-shot | Mistral-7B | 0.007 | 0.001 | 0.001 [0.000, 0.003] |
+| | zero-shot | Saul-7B | 0.976 | 0.059 | 0.043 [0.035, 0.050] |
+| | QLoRA | Llama-3.1-8B | 0.996 | **0.768** | **0.750** [0.728, 0.763] |
+| | QLoRA | Mistral-7B | 0.996 | **0.768** | 0.749 [0.727, 0.762] |
+| | QLoRA | Saul-7B | 0.995 | 0.766 | 0.748 [0.725, 0.761] |
+
+*Validity:* T1 strict Yes/No, T2 strict JSON, T3 valid label. *Correctness:* T1 accuracy, T2 exact match, T3 accuracy. *Headline F1:* T1 macro-F1, T2 mean token-F1, T3 macro-F1.
+
+Training cost on one T4 in fp16, for Mistral and Saul respectively: T1 2.98 h and 3.06 h, T2 1.06 h and 0.99 h, T3 5.99 h and 5.79 h. Every run completed one full epoch. The original Llama T1 run took 8.6 h in bf16.
+
+#### 4.3.2 Paired tests
+
+| Task | A → B | Only A / only B correct | McNemar p | Headline-F1 diff B − A [95% CI] |
+| :--- | :--- | :--- | ---: | :--- |
+| T1 | Mistral QLoRA → Saul QLoRA | 24 / 15 | 0.20 | −0.005 [−0.012, +0.002] |
+| T1 | Llama QLoRA → Saul QLoRA | 27 / 40 | 0.14 | +0.007 [−0.002, +0.016] |
+| T1 | Llama QLoRA → Mistral QLoRA | 20 / 42 | 0.007 | +0.012 [+0.004, +0.021] |
+| T2 | Mistral QLoRA → Saul QLoRA | 9 / 13 | 0.52 | +0.003 [−0.008, +0.013] |
+| T2 | Llama QLoRA → Saul QLoRA | 19 / 40 | 0.009 | +0.036 [+0.017, +0.056] |
+| T2 | Llama QLoRA → Mistral QLoRA | 20 / 37 | 0.033 | +0.033 [+0.015, +0.053] |
+| T3 | Mistral QLoRA → Saul QLoRA | 57 / 53 | 0.78 | −0.002 [−0.012, +0.008] |
+| T3 | Llama QLoRA → Saul QLoRA | 104 / 100 | 0.83 | −0.002 [−0.016, +0.012] |
+| T3 | Llama QLoRA → Mistral QLoRA | 94 / 94 | 1.00 | −0.000 [−0.014, +0.013] |
+| T1 | Mistral zero-shot → Saul zero-shot | 216 / 375 | 6.2 × 10⁻¹¹ | −0.151 [−0.175, −0.127] |
+| T2 | Mistral zero-shot → Saul zero-shot | 0 / 0 | 1.00 | +0.069 [+0.050, +0.089] |
+| T3 | Mistral zero-shot → Saul zero-shot | 1 / 115 | 2.8 × 10⁻³³ | +0.042 [+0.033, +0.049] |
+
+Fine-tuning is again decisive for every model: zero-shot → QLoRA is p < 10⁻⁹⁸ in all six model–task pairs, with headline-F1 gains between +0.385 and +0.850.
+
+#### 4.3.3 Findings
+
+1. **Legal pretraining gives no measurable gain after fine-tuning, on any task.** Saul QLoRA versus Mistral QLoRA — same architecture, tokenizer, data, prompts, hyperparameters and decoding — is a tie on T1 (p = 0.20), T2 (p = 0.52) and T3 (p = 0.78), and every F1 interval contains 0. Mistral is nominally ahead on T1 and T3, Saul on T2. Per label on T3, each is better on about the same number of labels: Saul on 38, Mistral on 39, with 23 equal. The two models even end T3 training at the same loss (0.249). This holds despite the contamination in Saul's favour (§3.4): LEDGAR, the task closest to EDGAR text, is where the two are most exactly tied.
+2. **Zero-shot, legal pretraining changes the failure mode, not usability.**
+   - **T1:** Saul answers `No` to all 2,208 examples. Its 0.747 accuracy is simply the majority-class rate, which is why its macro-F1 (0.428) is significantly *below* Mistral's (0.578). Mistral does discriminate, weakly, with `Yes` recall 0.39.
+   - **T2:** under the strict rule neither model produces one exact match. Mistral nearly always writes the right kind of object, but wraps it in a Markdown code fence and keeps generating. A diagnostic re-score of its first object (not an official metric) gives exact match 0.209 against Saul's 0.084.
+   - **T3:** Saul nearly always answers with a single real label (validity 0.976) but collapses onto a few — "No Defaults" is 58% of its answers. Mistral echoes the instruction's 100-label list back in 1,735 of 1,945 cases.
+   - In short, Saul's legal pretraining made it *more* format-compliant on T3 and *less* useful on T1. No zero-shot arm, Llama's included, is usable on any task.
+3. **The fine-tuned models are close, and the gaps that exist come from the tokenizer, not legal knowledge.** On T1, Mistral QLoRA is the best model and the only one significantly ahead of Llama (p = 0.007; CI excludes 0). Under the three-pair correction that is suggestive, not strong. On T2, Saul and Mistral both beat Llama (p = 0.009, 0.033), and the entire gap sits in two categories:
+
+   | T2 subset | n | Only Llama / only Mistral correct | p | Exact match Llama / Saul / Mistral |
+   | :--- | ---: | :--- | ---: | :--- |
+   | Agreement + Effective Date | 171 | 3 / 21 | 0.0003 | 0.819 / 0.930 / 0.924 |
+   | Other seven categories | 460 | 17 / 16 | 1.00 | 0.643 / 0.648 / 0.641 |
+
+   Those two categories' gold values are the punctuation-stripped digit strings produced by the CUAD cleaner (§5.1, item 12): `11/2/19` becomes `"11219"`. The Mistral tokenizer splits digits one by one, while Llama 3's splits them into chunks of up to three, and Llama's date errors are exactly digit insertions and drops (`11219` → `112219`). Plain Mistral, which has no legal pretraining, shows the same advantage as Saul and ties Saul on both subsets. So the T2 "win" is a tokenizer interacting with a label artefact. On T3 all three fine-tuned models are tied (every p ≥ 0.78). Their errors are the same near-synonymous label pairs noted in §4.2.3, such as Definitions/Defined Terms and Applicable Laws/Governing Laws.
+
 ---
 
 ## 5. Conclusions
@@ -591,6 +689,8 @@ This project set out to test whether a general-purpose open-weight LLM can be ma
 **A fourth conclusion, added after auditing the pre-processing (§3.2).** Task 2's per-category results are shaped more by the data pipeline than by the model. Three of its nine categories are compromised: `Warranty Duration`'s target is a constant string, so its perfect score is meaningless; the four date categories' targets are unseparated digit strings created by this project's own text cleaner, so the model is scored on inferring an arbitrary encoding rather than on reading a date; and `Parties` lost its `;` delimiter to the same cleaner, which silently disabled the list-handling path in both the data builder and the metric. Meanwhile the two best-scoring categories, `Document Name` (0.980) and `Governing Law` (0.920), are the two closest to verbatim copying — the gold answer *is* the input in 98.2% and a substring of it in 89.5% of cases respectively. Task 2's headline figures remain valid as a fine-tuned-versus-baseline delta, because both arms were scored on identical data; but the per-category table is not yet a credible measurement of entity-extraction ability, and the cheapest high-value work in this project is repairing the pipeline rather than training anything (§5.2, Tier 0).
 
 **What was found about the engineering, which is reusable.** The free-tier constraint produced findings worth more than the task scores to anyone repeating this: bf16 is a trap on a Turing GPU because PyTorch reports it as supported while it runs emulated; sequence caps must be enforced by trimming the *input*, because truncating an assembled prompt deletes a tail-positioned label and produces NaN loss under completion-only training; peak VRAM for an 8B model at this vocabulary size is dominated by the logits tensor, not the weights; peft's `prepare_model_for_kbit_training` silently upcasts frozen embedding and output layers to fp32, costing ~3 GB once autocast's cached copy is counted; and the dtype split it leaves behind breaks `generate()` outside autocast, which cost one run 5.5 hours of successful training. Pre-flight checks that exercise the real training *and* the real evaluation path before training starts are the cheap general lesson.
+
+**What the extension adds (§3.4, §4.3).** Swapping the base model for a legal-domain one does not help. Saul-7B-Base, which is Mistral-7B with further legal pretraining that includes the EDGAR filings both datasets come from, ties its own base model after identical QLoRA on all three tasks (p = 0.20, 0.52, 0.78). The three fine-tuned 7–8B models finish within 1.3 (T1), 3.5 (T2) and 0.2 (T3) headline-F1 points of each other. The only significant gaps are explained by the base model, as with Mistral on T1, or by the tokenizer, as with the T2 date labels. For these tasks, under this budget, the choice of base model matters far less than the fine-tuning itself, and legal-domain pretraining is not a substitute for task adaptation: zero-shot, Saul is no more usable than the general models.
 
 ### 5.1 Failure modes
 
@@ -653,6 +753,30 @@ These are ordered by how much they constrain the conclusions, and every one is v
 26. **Clause-level inputs only.** Both CUAD tasks consume pre-extracted clause excerpts, not whole contracts. The practically important step — locating the clause in a 50-page agreement before classifying it — is outside the current scope, so none of these numbers describe end-to-end contract review.
 27. **No measurement of what the adapters broke.** LoRA is reported to forget less than full fine-tuning while also learning less (Biderman et al., 2024), but no general-capability or cross-task evaluation was run, so the trade-off is unmeasured here. In particular, nothing tests whether the T1 adapter still performs T2, or whether any adapter retains general instruction-following.
 
+*Status after the extension (§3.4, §4.3).* Four items above are now partly or fully addressed:
+
+- **Item 2 (no significance testing):** model-versus-model comparisons now carry McNemar tests and bootstrap CIs.
+- **Item 20 (adapters never re-scored from disk):** closed. All three Llama adapters were re-scored from disk and reproduce their results to within two examples.
+- **Item 22 (stale documentation):** `README.md` and `CLAUDE.md` now give the correct task status and the 510-contract count.
+- **Item 24 (one model family):** a second family (Mistral) and a legal-domain model (Saul) have been compared.
+
+**F. Limitations specific to the extension**
+
+28. **One seed per arm, still.** Each extension arm is a single training run at seed 42, so the paired tests capture *evaluation*-sample uncertainty, not training-seed variance (Dodge et al., 2020). Fine-tuned differences of one to two points — every T1 and T3 gap between models — are within the range a seed change could produce. "No measurable gain" therefore means "no gain at this resolution", not "provably zero".
+29. **Per-tokenizer input trimming differs between model families.** The same 1,024-token cap leaves different provision budgets: Llama's tokenizer encodes the T3 label menu in 331 tokens, while the Mistral/Saul tokenizer needs 406. Trimmed inputs per arm, validation (training):
+
+    | Model | T1 | T2 | T3 |
+    | :--- | :--- | :--- | :--- |
+    | Llama | 6 / 2,208 (original training run: 50 / 6,106 over-length, truncated rather than trimmed — item 11) | 0 / 631 | 9 / 1,945 (79 / 9,801) |
+    | Mistral, Saul | 8 / 2,208 (73 / 6,106) | 0 / 631 (1 / 2,454) | 32 / 1,945 (210 / 9,801) |
+
+    Mistral and Saul are trimmed identically, so the headline legal-pretraining comparison is unaffected. Against Llama, the extra trimming touches at most 1.6% of T3 validation inputs, and it falls on the Mistral-family side, so it would bias *against* those models. `max_seq_len` was kept at 1,024 for comparability; raising it to 1,536 was considered and rejected.
+30. **bf16-trained Llama adapters evaluated in fp16.** The original Llama T1 and T2 adapters were trained (and originally evaluated) in bf16, while the harness evaluates every arm in fp16. Re-scoring changed T1 by one example and left T2 exact match identical, so the effect is negligible, but the Llama arms were not *trained* under the same numeric path as Mistral and Saul.
+31. **The Llama zero-shot arms were not re-run through the harness.** They come from the original bf16 notebooks, which saved no per-example predictions. Their T3 baseline also carries asymmetries 17–18. They are reported for context only and enter no paired test. Re-running them was planned but not done: the free-tier GPU quota ran out.
+32. **T2 zero-shot scoring is strict by design.** Following the notebooks, a completion only counts if the whole output is the JSON object. That hides the fact that Mistral zero-shot produces a correct-looking object 99% of the time. The fence-tolerant figures in §4.3.3 are diagnostics, not results.
+33. **Base models only.** Saul-7B-Base and Mistral-7B-v0.1 are base checkpoints, matching Llama-3.1-8B. Instruction-tuned variants such as `Saul-7B-Instruct-v1` might behave very differently zero-shot, but they would need their own chat templates, and their zero-shot scores could not be compared like-for-like.
+34. **Contamination is unquantified.** Saul's pretraining included EDGAR, the source of both datasets (§3.4). Because Saul shows no advantage, contamination cannot be inflating a reported gain. It could, however, be masking a *deficit*, and nothing here measures that.
+
 ### 5.2 Next steps
 
 Ordered so that the cheapest items that most strengthen the existing claims come first.
@@ -693,7 +817,7 @@ These items come first because §3.2's audit shows they currently bound what tas
 **Tier 4 — widen the comparison**
 
 20. **Cheap baselines, for cost-effectiveness.** A TF-IDF + linear classifier and a fine-tuned BERT-base on T1 and T3. If an encoder matches an 8B QLoRA adapter at a fraction of the cost on these two tasks, that is an important negative result and belongs in the write-up.
-21. **Alternative base models.** `Qwen/Qwen2.5-7B-Instruct` (Apache-2.0, reportedly stronger JSON adherence) and the legal-domain-pretrained `Equall/Saul-7B-Instruct-v1` (Colombo et al., 2024), both at the same adapter configuration. This tests directly whether a legal pretraining prior beats a stronger general model — the question the project's own model-selection review posed and never answered.
+21. **Alternative base models.** `Qwen/Qwen2.5-7B-Instruct` (Apache-2.0, reportedly stronger JSON adherence) and the legal-domain-pretrained `Equall/Saul-7B-Instruct-v1` (Colombo et al., 2024), both at the same adapter configuration. This tests directly whether a legal pretraining prior beats a stronger general model — the question the project's own model-selection review posed. *Partly answered by the extension (§4.3):* with the base models (Saul-7B-Base vs Mistral-7B) the legal prior gives no gain after QLoRA. The instruction-tuned variants and Qwen remain untested.
 22. **Multi-task and retention evaluation.** Train one adapter on all three tasks jointly and compare against the three single-task adapters; and evaluate each adapter off-task and on a general instruction benchmark to measure what fine-tuning cost (Biderman et al., 2024).
 23. **Position against the field's own benchmarks.** Score the T1 adapter against ContractEval, which benchmarks 4 proprietary and 15 open-source models on clause-level legal risk identification using CUAD (Liu et al., 2025), and consider the relevant LegalBench tasks (Guha et al., 2023). Without an external benchmark, "+0.415 macro-F1 over its own base model" says nothing about whether the result is good in absolute terms.
 24. **Move toward end-to-end review.** Add a retrieval or segmentation stage so the system takes a whole contract rather than a pre-extracted clause, and report the compounded error. This is the step between a benchmark result and a tool.
@@ -729,6 +853,8 @@ Guha, N., Nyarko, J., Ho, D. E., Ré, C., Chilton, A., & the LegalBench collabor
 Hendrycks, D., Burns, C., Chen, A., & Ball, S. (2021). CUAD: An expert-annotated NLP dataset for legal contract review. In *Proceedings of the Neural Information Processing Systems Track on Datasets and Benchmarks*. https://datasets-benchmarks-proceedings.neurips.cc/paper/2021/file/6ea9ab1baa0efb9e19094440c317e21b-Paper-round1.pdf
 
 Hu, E. J., Shen, Y., Wallis, P., Allen-Zhu, Z., Li, Y., Wang, S., Wang, L., & Chen, W. (2022). LoRA: Low-rank adaptation of large language models. In *International Conference on Learning Representations*. https://openreview.net/forum?id=nZeVKeeFYf9
+
+Jiang, A. Q., Sablayrolles, A., Mensch, A., Bamford, C., Chaplot, D. S., de las Casas, D., Bressand, F., Lengyel, G., Lample, G., Saulnier, L., Lavaud, L. R., Lachaux, M.-A., Stock, P., Le Scao, T., Lavril, T., Wang, T., Lacroix, T., & El Sayed, W. (2023). *Mistral 7B* (arXiv:2310.06825). arXiv. https://arxiv.org/abs/2310.06825
 
 Lhoest, Q., Villanova del Moral, A., Jernite, Y., Thakur, A., von Platen, P., Patil, S., Chaumond, J., Drame, M., Plu, J., Tunstall, L., Davison, J., Šaško, M., Chhablani, G., Malik, B., Brandeis, S., Le Scao, T., Sanh, V., Xu, C., Patry, N., & Wolf, T. (2021). Datasets: A community library for natural language processing. In *Proceedings of the 2021 Conference on Empirical Methods in Natural Language Processing: System Demonstrations* (pp. 175–184). https://aclanthology.org/2021.emnlp-demo.21/
 
@@ -788,6 +914,13 @@ Wolf, T., Debut, L., Sanh, V., Chaumond, J., Delangue, C., Moi, A., Cistac, P., 
 | Raw-vs-cleaned answer comparison, punctuation-survival rates, gold-vs-input overlap, value-type census, category-name mangling, split ratios | measured in this review by diffing `master_clauses.csv` against `master_clauses_cleaned.csv` and scanning all 3,085 task-2 and 8,314 task-1 generated examples |
 | Derived figures (conditional EM, improved/regressed label counts, macro-F1 over scorable labels, invalid-prediction totals) | recomputed in this review from the files above |
 | Smoke-test figures | `kaggle_output_3.2B_Llama_smoketest/eval_metrics.json` |
+| Extension: per-arm metrics, training cost, trimmed-input counts (§4.3.1, §5.1 item 29) | `kaggle_output_extension/runs/<model>_t<task>_<mode>[_adapterN]/{eval_metrics,train_metrics,run_config}.json` and `run.log`; merged into `kaggle_output_extension/extension_arms.csv` by `scripts/collect_extension_results.py` |
+| Extension: per-example predictions (paired tests, per-category / per-label breakdowns, bootstrap CIs) | `kaggle_output_extension/runs/*/predictions.jsonl`; CIs and breakdowns computed in `extension_comparison.ipynb` |
+| Extension: paired tests (§4.3.2) | `kaggle_output_extension/runs/compare_t<task>_<A>_vs_<B>.json` (from `scripts/legal_model_extension.py compare`, 2,000 resamples, seed 0); merged into `extension_comparisons.csv` |
+| Extension: T2 date-subset tests, zero-shot answer census, fence/bracket-tolerant diagnostics | recomputed from the `predictions.jsonl` files above; recorded in `docs/extension/DESIGN.md` |
+| Extension: tokenizer identity (Mistral = Saul), instruction token counts (331 / 406) | measured on CPU with the cached Hugging Face tokenizers; recorded in `docs/extension/DESIGN.md` |
+| Extension: scorer fidelity (harness reproduces the notebooks' metrics) | `scripts/test_extension_scoring.py` |
+| Extension: Kaggle environment of every arm | `kaggle_output_extension/runs/*/pip_freeze.txt` |
 
 ### Appendix B — Reported project artifacts not used in this paper
 
